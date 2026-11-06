@@ -103,7 +103,26 @@ deposits silently use the slow lane — that is expected behavior, not a failure
 
 ---
 
-## 3. User flows
+## 3. Web app (deposit → code → withdraw)
+
+```bash
+# relayer (T1) must allow the web origin:
+cd services/relayer && XPOOL_ENV=testnet RELAYER_TRANSACT_GAS=3000000 RELAYER_CORS_ORIGINS=http://localhost:5173 node --import tsx src/index.ts
+# web
+VITE_XPOOL_ENV=testnet VITE_RELAYER_URL=http://127.0.0.1:8080 pnpm --filter @xpool/web dev   # open http://localhost:5173
+```
+
+1. **Deposit**: connect a wallet (MetaMask etc. on the right network is switched for you). The chain
+   picker shows your USDC on each chain and starts on the one with the most. Type an amount, press
+   Deposit, **save the code** (copy or download), tick the box, approve + deposit in the wallet.
+2. **Withdraw**: switch to Withdraw (no wallet needed), paste the code, Find balance. It shows what the
+   code holds (and anything still arriving from an L2). Fill amount, recipient address, destination chain;
+   accept the privacy warnings if you're testing quickly; Withdraw. The proof is made in the browser.
+3. Partial withdrawals leave the rest on the same code; "Check the remaining balance" re-reads it.
+
+Timings are the same as the CLI rows below (ETH deposit ~15 min to show, L2 fast lane ~20–40 min).
+
+## 4. User flows (CLI)
 
 Set up two wallets (the recovery phrase is printed once; for testnet you can ignore it):
 
@@ -152,7 +171,7 @@ Each L2 deposit costs the fixed settlement fee (0.10 USDC) on top of the amount.
 - Spoke events: Base Sepolia / Arbitrum Sepolia explorers on each `Spoke`.
 - Services: their terminal logs (JSON lines; no IPs, bodies or secrets are logged).
 
-## 4. If something is stuck
+## 5. If something is stuck
 - **Release not delivered** (E/F): the relayer re-sends after 30 min (OP) / 60 min (Arbitrum) via
   `HubCore.resendRelease`; spoke execution is idempotent, so re-sends are always safe.
 - **Release queued on a spoke**: liquidity is in flight via CCTP; the keeper calls `processQueue` after the mint.

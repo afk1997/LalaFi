@@ -15,6 +15,7 @@ Decisions and deviations taken while building: [`docs/IMPLEMENTATION.md`](docs/I
 | `circuits/` | circom `Transaction(24,2,2,1)`, tests, test trusted setup; committed artifacts in `circuits/artifacts/` |
 | `packages/sdk` | `@xpool/sdk` — keys, notes, encryption, tree, sync, prover, tx builder, relayer client, privacy rules |
 | `packages/cli` | `xpool` CLI wallet |
+| `apps/web` | Web app: deposit → withdrawal code → withdraw anywhere ([README](apps/web/README.md)) |
 | `services/` | relayer, validator, finalizer, keeper, mock-bridge (local only), shared `common` |
 | `infra/` | `docker-compose.yml` local environment |
 | `scripts/` | `local-stack.sh` (host-native local env), `e2e.sh` (local E2E matrix) |
