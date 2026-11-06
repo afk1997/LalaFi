@@ -63,7 +63,8 @@ contract HubCore is IHubCore, MerkleTreeWithHistory, ReentrancyGuardTransient {
     mapping(uint64 dstChainId => mapping(uint64 index => bytes32)) public releaseHash;
 
     modifier onlyGuardian() {
-        if (msg.sender != guardian) revert OnlyGuardian();
+        address g = guardian;
+        if (g == address(0) || msg.sender != g) revert OnlyGuardian();
         _;
     }
 
