@@ -37,7 +37,8 @@ contract AdversarialTest is FastlaneBase {
         L2Deposit[] memory real = _spokeDeposits(BASE, 4, 1e6);
         uint256 fake;
         for (uint256 i; i < 4; ++i) {
-            L2Deposit[] memory f = _one(L2Deposit(real[i].index, real[i].ownerDigest, 10_000e6, real[i].fee, real[i].l2Block));
+            L2Deposit[] memory f =
+                _one(L2Deposit(real[i].index, real[i].ownerDigest, 10_000e6, real[i].fee, real[i].l2Block));
             _attest(BASE, 1, f, _allPks());
             fake += 10_000e6;
         }
@@ -100,7 +101,7 @@ contract AdversarialTest is FastlaneBase {
         uint64 l2 = spokes[ARB].l2Block;
         L2Deposit[] memory fut = _one(L2Deposit(0, 9, 8_000e6, 0, l2));
         _attest(ARB, 1, fut, _pks(0, 5));
-        (uint64 seq, ) = _sendCheckpoint(ARB, 64);
+        (uint64 seq,) = _sendCheckpoint(ARB, 64);
         assertEq(dm.checkpointOf(ARB, seq).countAtSend, 0);
         address watcher = makeAddr("watcher");
         vm.prank(watcher);
@@ -131,7 +132,8 @@ contract AdversarialTest is FastlaneBase {
     /// A coalition tries to unbond before its fraud is proven → blocked (I10); later slashed.
     function test_unbondBeforeProof_blocked() public {
         L2Deposit[] memory real = _spokeDeposits(BASE, 1, 1e6);
-        L2Deposit[] memory f = _one(L2Deposit(real[0].index, real[0].ownerDigest, 9_000e6, real[0].fee, real[0].l2Block));
+        L2Deposit[] memory f =
+            _one(L2Deposit(real[0].index, real[0].ownerDigest, 9_000e6, real[0].fee, real[0].l2Block));
         _attest(BASE, 1, f, _pks(0, 5));
         for (uint256 i; i < 5; ++i) {
             vm.prank(operators[i]);

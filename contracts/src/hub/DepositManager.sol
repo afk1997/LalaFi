@@ -359,9 +359,7 @@ contract DepositManager is IDepositManager, EIP712, ReentrancyGuard {
         bytes memory sigB,
         uint256 posB
     ) public nonReentrant {
-        _proveEquivocation(
-            EquivocationArgs(srcChainId, signer, epochA, depA, sigA, posA, epochB, depB, sigB, posB)
-        );
+        _proveEquivocation(EquivocationArgs(srcChainId, signer, epochA, depA, sigA, posA, epochB, depB, sigB, posB));
     }
 
     struct EquivocationArgs {
@@ -473,7 +471,8 @@ contract DepositManager is IDepositManager, EIP712, ReentrancyGuard {
         )
     {
         Batch storage b = _batches[batchId];
-        return (b.chainId, b.epoch, b.amount, b.sQ, b.itemCount, b.confirmedCount, b.status, b.submitter, b.depositsHash);
+        return
+            (b.chainId, b.epoch, b.amount, b.sQ, b.itemCount, b.confirmedCount, b.status, b.submitter, b.depositsHash);
     }
 
     function checkpointOf(uint64 chainId, uint64 seq) external view returns (CheckpointRec memory) {
@@ -642,9 +641,10 @@ contract DepositManager is IDepositManager, EIP712, ReentrancyGuard {
 
     function _digestFromHashes(uint64 chainId, uint64 epoch, bytes32[] memory hs) internal view returns (bytes32) {
         address spoke = _chainIdx(chainId) == 0 ? baseSpoke : arbSpoke;
-        return _hashTypedDataV4(
-            keccak256(abi.encode(BATCH_TYPEHASH, chainId, spoke, epoch, keccak256(abi.encodePacked(hs))))
-        );
+        return
+            _hashTypedDataV4(
+                keccak256(abi.encode(BATCH_TYPEHASH, chainId, spoke, epoch, keccak256(abi.encodePacked(hs))))
+            );
     }
 
     /// @dev One checkpoint item (PRD 7.5 table). Every item is confirmed and credited exactly once.

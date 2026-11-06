@@ -557,7 +557,7 @@ contract DepositManagerTest is FastlaneBase {
         assertEq(uint8(dm.batchStatus(1)), uint8(IDepositManager.BatchStatus.Fraud));
         assertEq(dm.unconfirmedFastValue(), 0);
         for (uint256 i; i < 7; ++i) {
-            (, , bool jailed) = sm.validatorBySigner(vm.addr(pks[i]));
+            (,, bool jailed) = sm.validatorBySigner(vm.addr(pks[i]));
             assertTrue(jailed);
         }
         assertEq(sm.totalStake(), stakeBefore - 7 * BOND);
@@ -766,9 +766,7 @@ contract DepositManagerTest is FastlaneBase {
         L2Deposit[] memory ds = new L2Deposit[](2);
         ds[0] = L2Deposit(3, 11, 22e6, 100_000, 77);
         ds[1] = L2Deposit(4, 12, 23e6, 100_000, 78);
-        bytes32 td = keccak256(
-            "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
-        );
+        bytes32 td = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
         bytes32 ds_ = keccak256(abi.encode(td, keccak256("xpool"), keccak256("1"), block.chainid, address(dm)));
         assertEq(dm.domainSeparator(), ds_);
         bytes32 th = keccak256("L2Deposit(uint64 index,uint256 ownerDigest,uint256 amount,uint256 fee,uint64 l2Block)");
