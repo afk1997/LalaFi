@@ -59,7 +59,7 @@ Hub contracts on Sepolia: `PoseidonT3`, `PoseidonT4`, `Groth16Verifier`, `StakeM
 9. **Local bridges** keep the real authentication semantics: the mock OP L2 messenger exposes
    `xDomainMessageSender()`; mock Arbitrum delivery impersonates the aliased adapter address on Anvil;
    a `MockArbSys` is placed at `address(100)` with `anvil_setCode`.
-10. **Trusted setup** for local/testnet: Hermez `powersOfTau28_hez_final_16.ptau` + team contribution +
+10. **Trusted setup** for local/testnet: PSE PPoT `ppot_0080_16.ptau` (Hermez mirror now 403s; blake2b pinned, `powersoftau verify` passed) + team contribution +
     beacon, marked NOT FOR MAINNET. The verifier is generated, never hand-edited.
 
 ## Ownership (parallel build)
@@ -127,8 +127,8 @@ mnemonic accounts: 0 deployer, 1 mock-bridge relayer + CCTP attester, 2 relayer,
 4 keeper, 5–8 validator operators, 9–12 validator signers, 13+ users/LPs.
 
 ### Circuit artifacts
-`circuits/build/transaction.wasm`, `circuits/build/transaction_final.zkey`,
-`circuits/build/verification_key.json`; sha256 of each is recorded in
+`circuits/artifacts/transaction.wasm`, `circuits/artifacts/transaction_final.zkey`,
+`circuits/artifacts/verification_key.json` (committed; `circuits/build/` is scratch); sha256 of each is recorded in
 `circuits/artifacts/hashes.json` and copied into `config/<env>.json` → `artifacts` at deploy time.
 Witness input names are exactly the PRD 6.2 signal names.
 

@@ -121,9 +121,15 @@
     "targetBpsMax": 6000
   },
   "artifacts": {
-    "wasm": "sha256:TBD",
-    "zkey": "sha256:TBD",
-    "vkey": "sha256:TBD"
+    "wasm": "sha256:341fb9b77d0746b7916e3a31e0e49b7eb81c3f66ba7d8e4be82294bb6b5d0628",
+    "zkey": "sha256:2c3a87696669a0633a23a405c28069dce75656f238fb4a4304f86ddfe63f2b96",
+    "vkey": "sha256:1c960224110dfc62d8bfef8c0c8a549f10d034b5d4fa627ec53b90954f03be9c",
+    "paths": {
+      "wasm": "circuits/artifacts/transaction.wasm",
+      "zkey": "circuits/artifacts/transaction_final.zkey",
+      "vkey": "circuits/artifacts/verification_key.json"
+    },
+    "_note": "Test trusted setup (PSE ppot_0080_16 + team contribution + beacon). NOT FOR MAINNET."
   },
   "_notes": [
     "DEPLOYED_MOCK values are filled from deployments/local.json by the local deploy script."
