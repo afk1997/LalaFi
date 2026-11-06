@@ -1,0 +1,30 @@
+{
+  "name": "@xpool/service-common",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "build": "tsc --noEmit -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "prom-client": "^15.1.3",
+    "viem": "^2.57.16",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.4"
+  }
+}
