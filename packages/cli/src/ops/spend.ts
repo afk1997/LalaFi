@@ -52,6 +52,11 @@ export function spendContextFor(ctx: Ctx, wallet: Wallet, view: ChainView): Spen
 export async function getFees(ctx: Ctx, flags: RelayFlags, dstChainId: bigint, w: bigint): Promise<SpendFees> {
   checkRelayFlags(flags);
   if (flags.selfRelay) {
+    const spoke = ctx.env().spokes.find((s) => BigInt(s.chainId) === dstChainId);
+    if (spoke?.stack === 'arbitrum') {
+      // TODO(xpool): estimate retryable BridgeParams (+30% margin) for self-relayed Arbitrum releases.
+      throw new CliError('self-relay to Arbitrum needs retryable bridge parameters; use a relayer for this destination');
+    }
     info('W1 override: self-relaying from your own EOA (linkable).');
     return { relayer: zeroAddress, relayerFee: 0n, ethValue: 0n, bridgeParams: EMPTY_BP };
   }
