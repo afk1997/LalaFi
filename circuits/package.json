@@ -1,0 +1,26 @@
+{
+  "name": "@xpool/circuits",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "xpool v1 Transaction(24,2,2,1) circuit, tests and test-only trusted setup (NOT FOR MAINNET)",
+  "scripts": {
+    "build": "bash scripts/compile.sh",
+    "setup": "bash scripts/setup.sh",
+    "test": "vitest run",
+    "measure": "tsx scripts/measure.ts",
+    "fixtures": "tsx scripts/fixtures.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@noble/hashes": "^1.8.0",
+    "@types/node": "^22.9.0",
+    "circom2": "^0.2.22",
+    "circomlib": "2.0.5",
+    "circomlibjs": "0.1.7",
+    "snarkjs": "0.7.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.4"
+  }
+}
