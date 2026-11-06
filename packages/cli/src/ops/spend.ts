@@ -77,7 +77,7 @@ function artifactPins(ctx: Ctx): ArtifactPins {
 }
 
 const SUBMIT_DELAY_MAX_MS: Record<string, number> = { local: 3_000, testnet: 60_000, mainnet: 300_000 };
-const OK_STATES = new Set(['mined', 'confirmed', 'success', 'succeeded', 'executed', 'done']);
+const OK_STATES = new Set(['mined', 'confirmed', 'released', 'success', 'succeeded', 'executed', 'done']);
 const BAD_STATES = new Set(['failed', 'reverted', 'rejected', 'error', 'expired']);
 
 /** Liquidity pre-check on the destination (PRD 7.4 step 10, checked by the wallet before proving). */

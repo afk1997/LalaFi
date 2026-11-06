@@ -33,7 +33,8 @@ export interface RelayerQuote {
   expiresAt: number;
 }
 
-export type RelayState = 'pending' | 'submitted' | 'mined' | 'failed' | string;
+// services/relayer store.ts: pending | submitted | confirmed | released | failed
+export type RelayState = 'pending' | 'submitted' | 'confirmed' | 'released' | 'failed' | string;
 
 export interface RelayStatus {
   txHash?: Hex;
