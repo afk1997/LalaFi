@@ -58,6 +58,7 @@ abstract contract Spoke is ISpoke, ReentrancyGuardTransient {
     error UnknownKind(uint8 kind);
     error WrongDestination(uint64 dstChainId);
     error AlreadyHandled(uint64 id);
+    error RebalanceDisabled(uint64 nonce);
 
     event RebalanceQueued(uint64 indexed nonce);
     event RebalanceFailed(uint64 indexed nonce, bytes reason);
@@ -128,9 +129,8 @@ abstract contract Spoke is ISpoke, ReentrancyGuardTransient {
     uint256 public failedAmount;
 
     constructor(SpokeConfig memory cfg) {
-        if (cfg.usdc == address(0) || cfg.hubAdapter == address(0) || cfg.tokenMessengerV2 == address(0)) {
-            revert ZeroAddress();
-        }
+        // tokenMessengerV2 == 0: no CCTP for this pool's token (e.g. DAI); rebalance orders are ignored.
+        if (cfg.usdc == address(0) || cfg.hubAdapter == address(0)) revert ZeroAddress();
         if (
             cfg.hubChainId == 0 || cfg.minDeposit == 0 || cfg.minDeposit > cfg.maxDeposit
                 || cfg.maxDeposit > type(uint128).max || cfg.maxCheckpoint == 0
@@ -282,6 +282,11 @@ abstract contract Spoke is ISpoke, ReentrancyGuardTransient {
     }
 
     function _onRebalance(RebalanceOrder memory o) internal {
+        if (tokenMessengerV2 == address(0)) {
+            // No CCTP on this deployment: nothing is reserved, recorded or moved.
+            emit HubMessageIgnored(MSG_REBALANCE, abi.encodeWithSelector(RebalanceDisabled.selector, o.nonce));
+            return;
+        }
         RebalanceRecord storage rec = _rebalances[o.nonce];
         if (rec.state != ReleaseState.None) {
             emit HubMessageIgnored(MSG_REBALANCE, abi.encodeWithSelector(AlreadyHandled.selector, o.nonce));
