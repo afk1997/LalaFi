@@ -156,8 +156,17 @@ function Ready({
   const chain = chainOf(pool, chainId);
 
   useEffect(() => {
-    void Promise.all(pool.chains.map(async (c) => [c.id, await available(pool, c.id).catch(() => 0n)] as const)).then((l) => setLiquidity(Object.fromEntries(l)));
-  }, [pool]);
+    void Promise.all(pool.chains.map(async (c) => [c.id, await available(pool, c.id).catch(() => 0n)] as const)).then((l) => {
+      const liq = Object.fromEntries(l) as Record<number, bigint>;
+      setLiquidity(liq);
+      // Start on a chain that can actually pay out (most liquidity), not on one with none.
+      setChainId((cur) => {
+        if ((liq[cur] ?? 0n) >= env.params.minWithdraw) return cur;
+        const best = [...pool.chains].sort((a, b) => ((liq[b.id] ?? 0n) > (liq[a.id] ?? 0n) ? 1 : -1))[0];
+        return best && (liq[best.id] ?? 0n) > 0n ? best.id : cur;
+      });
+    });
+  }, [pool, env.params.minWithdraw]);
 
   // Quote (relayer fee) for the current chain and amount; debounced.
   useEffect(() => {
@@ -186,7 +195,10 @@ function Ready({
     if (!q) return quoteError ?? 'Getting the relayer fee…';
     if (q.total > scanned.balance) return `With fees this needs ${fmt(q.total)} ${sym}; the code holds ${fmt(scanned.balance)}.`;
     const liq = liquidity[chainId];
-    if (liq !== undefined && liq < w) return `${chain.label} can pay out ${fmt(liq)} ${sym} right now. Pick another chain or a smaller amount.`;
+    if (liq !== undefined && liq < w) {
+      const alt = pool.chains.find((c) => c.id !== chainId && (liquidity[c.id] ?? 0n) >= w);
+      return `${chain.label} can pay out ${fmt(liq)} ${sym} right now.${alt ? ` Pick ${alt.label}, which can.` : ' Try a smaller amount.'}`;
+    }
     if (hints.length > 0 && !accepted) return undefined;
     return undefined;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -247,8 +259,15 @@ function Ready({
         {c.label}
       </>
     ),
-    detail: liquidity[c.id] !== undefined ? `${fmt(liquidity[c.id]!)} ${sym} available` : undefined,
+    detail:
+      liquidity[c.id] === undefined
+        ? undefined
+        : liquidity[c.id]! === 0n
+          ? 'nothing to pay out yet'
+          : `${fmt(liquidity[c.id]!)} ${sym} available`,
+    disabled: liquidity[c.id] !== undefined && liquidity[c.id]! < (w && w > 0n ? w : env.params.minWithdraw),
   }));
+  const noCctp = pool.symbol !== 'USDC';
 
   const step = busy ? stage.step : undefined;
   const order = ['checking', 'proving', 'waiting', 'sending', 'sent', 'confirmed'];
@@ -282,7 +301,17 @@ function Ready({
           invalid={recipient.trim() !== '' && !to}
         />{' '}
         on{' '}
-        <SelectPill label="Destination chain" value={chainId} options={chainOptions} onChange={setChainId}>
+        <SelectPill
+          label="Destination chain"
+          value={chainId}
+          options={chainOptions}
+          onChange={setChainId}
+          note={
+            noCctp
+              ? `A chain can only pay out ${sym} that is already there. Unlike USDC, ${sym} can't be moved between chains automatically, so an L2 fills up as deposits made there are confirmed.`
+              : undefined
+          }
+        >
           <Mark color={CHAIN_MARK[chain.key]!} />
           {chain.label}
         </SelectPill>
