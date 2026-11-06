@@ -611,3 +611,255 @@ button.pill:hover {
     min-width: 260px;
   }
 }
+
+/* ------------------------------------------------------------------ how it works */
+
+.how .sentence {
+  font-size: clamp(1.9rem, 1.1rem + 2.6vw, 3.4rem);
+}
+
+.diagram {
+  display: block;
+  width: 100%;
+  margin-top: 28px;
+  font-family: var(--sans);
+}
+
+.d-zone {
+  fill: var(--fog);
+  font-size: 13px;
+}
+
+.d-chain {
+  fill: color-mix(in srgb, var(--raised) 70%, transparent);
+  stroke: var(--line);
+}
+
+.d-chain-label {
+  fill: var(--mist);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.d-node rect {
+  fill: var(--raised);
+  stroke: var(--line);
+  transition: stroke 200ms, fill 200ms;
+}
+
+.d-node.on rect {
+  fill: var(--pill);
+  stroke: var(--brass);
+  stroke-width: 2;
+}
+
+.d-label {
+  fill: var(--mist);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.d-sub {
+  fill: var(--fog);
+  font-size: 11.5px;
+}
+
+.d-node:not(.on) .d-label {
+  fill: color-mix(in srgb, var(--mist) 70%, transparent);
+}
+
+.d-arrow {
+  fill: none;
+  stroke: var(--brass);
+  stroke-width: 2.5;
+  stroke-dasharray: 7 6;
+  animation: dash 900ms linear infinite;
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -13;
+  }
+}
+
+.d-token {
+  fill: var(--brass);
+}
+
+.d-carries-bg {
+  fill: var(--brass-pill);
+  stroke: var(--brass);
+}
+
+.d-carries {
+  fill: var(--brass);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .d-arrow {
+    animation: none;
+  }
+  .d-token {
+    display: none;
+  }
+}
+
+.how-step {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 40px;
+  margin-top: 18px;
+  padding: 28px 30px;
+  border-radius: 20px;
+  background: var(--raised);
+  border: 1px solid var(--line);
+}
+
+.how-count {
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin: 0;
+  color: var(--fog);
+  font-size: var(--t-small);
+}
+
+.how-step h2 {
+  margin: 8px 0 10px;
+  font-size: 1.6rem;
+  letter-spacing: -0.02em;
+  font-weight: 640;
+}
+
+.how-what {
+  margin: 0;
+  color: var(--mist);
+  font-size: 1.05rem;
+  max-width: 60ch;
+}
+
+.how-facts {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.how-facts dt {
+  color: var(--brass);
+  font-size: var(--t-small);
+  font-weight: 600;
+  margin-top: 12px;
+}
+
+.how-facts dt:first-child {
+  margin-top: 0;
+}
+
+.how-facts dd {
+  margin: 0;
+  color: var(--mist);
+}
+
+.how-dots {
+  display: flex;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 20px 0 0;
+}
+
+.how-dots button {
+  width: 26px;
+  height: 6px;
+  border-radius: 3px;
+  border: 0;
+  background: var(--line);
+  cursor: pointer;
+  padding: 0;
+}
+
+.how-dots button[aria-current='true'] {
+  background: var(--brass);
+}
+
+.how-h {
+  margin: 56px 0 14px;
+  font-size: 1.35rem;
+  font-weight: 640;
+  letter-spacing: -0.01em;
+}
+
+.how-cols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 48px;
+}
+
+.how-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.how-table th {
+  text-align: left;
+  color: var(--fog);
+  font-weight: 500;
+  font-size: var(--t-small);
+  padding: 0 12px 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.how-table td {
+  padding: 10px 12px 10px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
+  vertical-align: top;
+}
+
+.how-guarantees {
+  margin: 0;
+  display: grid;
+  gap: 16px;
+}
+
+.how-guarantees dt {
+  font-weight: 600;
+}
+
+.how-guarantees dd {
+  margin: 2px 0 0;
+  color: var(--fog);
+}
+
+.how-live {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 32px;
+}
+
+.how-pool h3 {
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+}
+
+.how-chain {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.how-chain .mark {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+@media (max-width: 860px) {
+  .how-step,
+  .how-cols {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}

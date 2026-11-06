@@ -2,15 +2,16 @@ import { useState } from 'react';
 import { WalletButton } from './components/WalletButton';
 import { ENV_NAME, NETWORK_LABEL, pools } from './lib/env';
 import { Deposit } from './views/Deposit';
+import { How } from './views/How';
 import { Withdraw } from './views/Withdraw';
 
-type Mode = 'deposit' | 'withdraw';
+type Mode = 'deposit' | 'withdraw' | 'how';
 
 export function App() {
-  const [mode, setMode] = useState<Mode>(() => (location.hash === '#withdraw' ? 'withdraw' : 'deposit'));
+  const [mode, setMode] = useState<Mode>(() => (location.hash === '#withdraw' ? 'withdraw' : location.hash === '#how' ? 'how' : 'deposit'));
   const choose = (m: Mode) => {
     setMode(m);
-    history.replaceState(null, '', m === 'withdraw' ? '#withdraw' : '#');
+    history.replaceState(null, '', m === 'deposit' ? '#' : `#${m}`);
   };
   return (
     <div className="frame">
@@ -25,12 +26,15 @@ export function App() {
           <button type="button" aria-pressed={mode === 'withdraw'} onClick={() => choose('withdraw')}>
             Withdraw
           </button>
+          <button type="button" aria-pressed={mode === 'how'} onClick={() => choose('how')}>
+            How it works
+          </button>
         </nav>
         <div className="top-right">{mode === 'deposit' ? <WalletButton /> : null}</div>
       </header>
 
       <main className="stage" key={mode}>
-        {mode === 'deposit' ? <Deposit /> : <Withdraw />}
+        {mode === 'deposit' ? <Deposit /> : mode === 'withdraw' ? <Withdraw /> : <How />}
       </main>
 
       <footer className="foot">
