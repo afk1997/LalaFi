@@ -19,7 +19,8 @@ contract DepositManagerDouble {
     mapping(uint64 => address) public adapterOf;
     mapping(uint64 => uint256) public received;
     mapping(uint64 => mapping(uint64 => bytes32)) public payloadHash;
-    bytes public lastPayload;
+    /// @dev The real DepositManager only stores a hash (fits minGasL1); so does this double.
+    event CheckpointPayload(uint64 indexed srcChainId, bytes payload);
 
     function setAdapter(uint64 chainId, address adapter) external {
         adapterOf[chainId] = adapter;
@@ -34,11 +35,7 @@ contract DepositManagerDouble {
         }
         payloadHash[srcChainId][cp.seq] = keccak256(payload);
         received[srcChainId]++;
-        lastPayload = payload;
-    }
-
-    function lastCheckpoint() external view returns (Checkpoint memory) {
-        return abi.decode(lastPayload, (Checkpoint));
+        emit CheckpointPayload(srcChainId, payload);
     }
 }
 
