@@ -1,0 +1,30 @@
+{
+  "name": "@xpool/cli",
+  "version": "0.1.0",
+  "private": true,
+  "description": "xpool v1 CLI wallet",
+  "type": "module",
+  "bin": {
+    "xpool": "./dist/index.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "dev": "tsx --conditions=xpool-source src/index.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vitest": "^2.1.9"
+  },
+  "dependencies": {
+    "@xpool/sdk": "workspace:*",
+    "commander": "^15.0.0",
+    "viem": "^2.57.16"
+  }
+}
