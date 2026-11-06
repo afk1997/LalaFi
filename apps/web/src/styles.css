@@ -1,0 +1,613 @@
+@import '@fontsource-variable/schibsted-grotesk/wght.css';
+@import '@fontsource/ibm-plex-mono/500.css';
+
+:root {
+  /* petrol ground, mist text, one brass accent (amounts + the code), amber only for warnings */
+  --ground: #0f2226;
+  --raised: #16303a;
+  --pill: #1b3a42;
+  --pill-hover: #22464f;
+  --line: #2a4a52;
+  --mist: #e3ece9;
+  --fog: #8ea5a4;
+  --brass: #ddb866;
+  --brass-pill: #3a3522;
+  --amber: #e8925a;
+  --paper: #f1eee6;
+
+  --sans: 'Schibsted Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  /* type scale (≈1.25 ratio); the sentence is the one big thing */
+  --t-sentence: clamp(2.1rem, 1.2rem + 3.2vw, 4.1rem);
+  --t-lead: clamp(1.05rem, 0.95rem + 0.4vw, 1.3rem);
+  --t-body: 1rem;
+  --t-small: 0.875rem;
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--mist);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 3px;
+}
+
+a {
+  color: inherit;
+  text-underline-offset: 3px;
+}
+
+/* ------------------------------------------------------------------ frame */
+
+.frame {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  padding: 20px clamp(20px, 5vw, 72px) 28px;
+}
+
+.top {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-weight: 650;
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+}
+
+.brand small {
+  font-weight: 450;
+  font-size: var(--t-small);
+  color: var(--fog);
+  letter-spacing: 0;
+}
+
+.top-right {
+  justify-self: end;
+}
+
+/* Deposit | Withdraw: a capsule like the reference's Connect bar */
+.modes {
+  display: inline-flex;
+  padding: 5px;
+  gap: 2px;
+  border-radius: 999px;
+  background: var(--raised);
+  border: 1px solid var(--line);
+}
+
+.modes button {
+  border: 0;
+  background: transparent;
+  padding: 9px 20px;
+  border-radius: 999px;
+  font-weight: 560;
+  cursor: pointer;
+  color: var(--fog);
+}
+
+.modes button[aria-pressed='true'] {
+  background: var(--paper);
+  color: var(--ground);
+}
+
+/* ------------------------------------------------------------------ stage */
+
+.stage {
+  align-self: center;
+  width: min(1320px, 100%);
+  padding: 8vh 0 6vh;
+}
+
+.sentence {
+  font-size: var(--t-sentence);
+  font-weight: 620;
+  letter-spacing: -0.035em;
+  line-height: 1.32;
+  margin: 0;
+  max-width: 32ch;
+  text-wrap: pretty;
+}
+
+.sentence.wide {
+  max-width: 40ch;
+}
+
+.lead {
+  margin: 22px 0 0;
+  max-width: 60ch;
+  font-size: var(--t-lead);
+  color: var(--fog);
+}
+
+.lead strong {
+  color: var(--mist);
+  font-weight: 560;
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.fact {
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: var(--raised);
+  color: var(--fog);
+  font-size: var(--t-small);
+}
+
+.fact b {
+  color: var(--mist);
+  font-weight: 560;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-top: 36px;
+}
+
+.why {
+  color: var(--fog);
+  font-size: var(--t-small);
+}
+
+/* the one orchestrated motion: the sentence re-sets when the mode changes */
+.swap {
+  animation: swap 360ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@keyframes swap {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+    filter: blur(3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swap {
+    animation: none;
+  }
+}
+
+/* ------------------------------------------------------------------ pills (inline in the sentence) */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.18em;
+  vertical-align: baseline;
+  padding: 0.02em 0.32em 0.06em;
+  margin: 0 0.04em;
+  border-radius: 0.42em;
+  background: var(--pill);
+  border: 0;
+  line-height: 1.12;
+  white-space: nowrap;
+  position: relative;
+}
+
+button.pill {
+  cursor: pointer;
+  font-weight: inherit;
+  letter-spacing: inherit;
+}
+
+button.pill:hover {
+  background: var(--pill-hover);
+}
+
+.pill.value {
+  background: var(--brass-pill);
+  color: var(--brass);
+}
+
+.pill .chev {
+  width: 0.36em;
+  height: 0.36em;
+  margin-left: 0.08em;
+  border-right: 0.075em solid currentColor;
+  border-bottom: 0.075em solid currentColor;
+  transform: translateY(-0.12em) rotate(45deg);
+  opacity: 0.55;
+}
+
+.pill .mark {
+  width: 0.62em;
+  height: 0.62em;
+  border-radius: 50%;
+  flex: none;
+}
+
+.pill input {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  outline: none;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  min-width: 1ch;
+}
+
+.pill input::placeholder {
+  color: color-mix(in srgb, currentColor 45%, transparent);
+}
+
+.pill.field {
+  font-family: var(--sans);
+}
+
+.pill.field:focus-within,
+.pill.value:focus-within {
+  box-shadow: 0 0 0 2px var(--brass);
+}
+
+.pill.invalid {
+  box-shadow: 0 0 0 2px var(--amber);
+}
+
+/* popover menu under a pill */
+.menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  z-index: 20;
+  min-width: 300px;
+  padding: 6px;
+  border-radius: 14px;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  box-shadow: 0 18px 50px rgb(0 0 0 / 35%);
+  font-size: var(--t-body);
+  letter-spacing: 0;
+  line-height: 1.4;
+  font-weight: 450;
+}
+
+.menu button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  border-radius: 9px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.menu button:hover,
+.menu button[aria-selected='true'] {
+  background: var(--pill);
+}
+
+.menu button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.menu .opt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.menu .opt .mark {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.menu .detail {
+  color: var(--fog);
+  font-size: var(--t-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.menu .note {
+  padding: 8px 12px 6px;
+  color: var(--fog);
+  font-size: var(--t-small);
+}
+
+/* ------------------------------------------------------------------ buttons */
+
+.btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 15px 28px;
+  font-weight: 600;
+  font-size: 1.05rem;
+  cursor: pointer;
+  background: var(--paper);
+  color: var(--ground);
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  background: var(--raised);
+  color: var(--fog);
+}
+
+.btn.quiet {
+  background: transparent;
+  color: var(--mist);
+  border: 1px solid var(--line);
+}
+
+.link {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--fog);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  font-size: var(--t-small);
+}
+
+.chip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  background: var(--raised);
+  padding: 9px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 540;
+}
+
+.chip-btn.light {
+  background: var(--paper);
+  color: var(--ground);
+  border-color: var(--paper);
+}
+
+.chip-btn img {
+  width: 18px;
+  height: 18px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #7fc7a0;
+}
+
+.wallet-menu {
+  position: relative;
+}
+
+.wallet-menu .menu {
+  left: auto;
+  right: 0;
+}
+
+/* ------------------------------------------------------------------ the code slip */
+
+.slip {
+  margin-top: 30px;
+  max-width: 760px;
+  padding: 26px 28px;
+  border-radius: 20px;
+  background: var(--raised);
+  border: 1px solid var(--line);
+}
+
+.slip h2 {
+  margin: 0 0 6px;
+  font-size: 1.25rem;
+  letter-spacing: -0.01em;
+  font-weight: 620;
+}
+
+.slip p {
+  margin: 0;
+  color: var(--fog);
+  max-width: 62ch;
+}
+
+.code {
+  margin: 20px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-family: var(--mono);
+  font-size: clamp(1rem, 0.9rem + 0.6vw, 1.35rem);
+  color: var(--brass);
+  word-break: break-all;
+  user-select: all;
+}
+
+.slip .row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.check {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-top: 18px;
+  cursor: pointer;
+  max-width: 62ch;
+}
+
+.check input {
+  margin-top: 4px;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--brass);
+  flex: none;
+}
+
+/* progress list for multi-step actions (a real sequence, so it's numbered by state, not decoration) */
+.steps {
+  list-style: none;
+  margin: 26px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  max-width: 62ch;
+}
+
+.steps li {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  color: var(--fog);
+}
+
+.steps li::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid var(--fog);
+  flex: none;
+  transform: translateY(-1px);
+}
+
+.steps li.now {
+  color: var(--mist);
+}
+
+.steps li.now::before {
+  border-color: var(--brass);
+  background: var(--brass);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.steps li.done::before {
+  background: var(--fog);
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .steps li.now::before {
+    animation: none;
+  }
+}
+
+.hints {
+  margin: 26px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+  max-width: 64ch;
+}
+
+.hints li {
+  color: var(--amber);
+  padding-left: 18px;
+  position: relative;
+}
+
+.hints li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.62em;
+  width: 7px;
+  height: 7px;
+  background: var(--amber);
+  transform: rotate(45deg);
+}
+
+.error {
+  margin-top: 18px;
+  color: var(--amber);
+  max-width: 64ch;
+}
+
+.meter {
+  margin-top: 26px;
+  height: 3px;
+  width: min(420px, 100%);
+  background: var(--raised);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.meter span {
+  display: block;
+  height: 100%;
+  background: var(--brass);
+  transition: width 300ms ease;
+}
+
+.foot {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  color: var(--fog);
+  font-size: var(--t-small);
+}
+
+@media (max-width: 720px) {
+  .top {
+    grid-template-columns: 1fr auto;
+  }
+  .top .modes {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: start;
+    margin-top: 14px;
+  }
+  .stage {
+    padding-top: 5vh;
+  }
+  .menu {
+    min-width: 260px;
+  }
+}
