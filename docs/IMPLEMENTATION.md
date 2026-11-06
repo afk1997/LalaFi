@@ -131,3 +131,16 @@ mnemonic accounts: 0 deployer, 1 mock-bridge relayer + CCTP attester, 2 relayer,
 `circuits/build/verification_key.json`; sha256 of each is recorded in
 `circuits/artifacts/hashes.json` and copied into `config/<env>.json` → `artifacts` at deploy time.
 Witness input names are exactly the PRD 6.2 signal names.
+
+### Constructors (fixed; see `contracts/src/libraries/DeployConfig.sol`)
+
+```
+HubCore(HubCoreConfig)                 DepositManager(DepositManagerConfig)
+StakeManager(StakeManagerConfig)       LiquidityManager(LiquidityManagerConfig)
+OpStackHubAdapter(OpStackHubAdapterConfig)   ArbitrumHubAdapter(ArbitrumHubAdapterConfig)
+OpStackSpoke(SpokeConfig, address l2Messenger)   ArbitrumSpoke(SpokeConfig)
+Groth16Verifier()  (snarkjs-generated)  PoseidonT3 / PoseidonT4 (poseidon-solidity bytecode)
+```
+Source paths: `src/hub/{HubCore,DepositManager,StakeManager,LiquidityManager}.sol`,
+`src/hub/adapters/{OpStackHubAdapter,ArbitrumHubAdapter}.sol`, `src/spoke/{Spoke,OpStackSpoke,ArbitrumSpoke}.sol`,
+`src/verifier/Groth16Verifier.sol`.
