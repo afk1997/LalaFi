@@ -119,9 +119,11 @@
     "_note": "Test trusted setup (PSE ppot_0080_16 + team contribution + beacon). NOT FOR MAINNET."
   },
   "_notes": [
+    "LEGACY: superseded by testnet-dai2 (DAI payable on Base too). Kept so existing txdai1 codes can still withdraw; hidden from new deposits.",
     "DAI pool (one pool per token): hub on Sepolia + Base Sepolia spoke only (no Arbitrum: arbChainId = 0).",
     "No CCTP for DAI: tokenMessengerV2 = 0 disables rebalancing; each chain's liquidity comes only from deposits there.",
     "DAI tokens are team-deployed 18-decimal test tokens. Amounts here are in 18-decimal units.",
     "Guardian = deployer EOA on testnet. Same circuit artifacts as the USDC pool (separate tree)."
-  ]
+  ],
+  "legacy": true
 }

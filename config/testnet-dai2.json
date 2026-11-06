@@ -1,0 +1,126 @@
+{
+  "environment": "testnet",
+  "pool": "dai2",
+  "token": {
+    "symbol": "DAI",
+    "name": "Dai Stablecoin",
+    "decimals": 18
+  },
+  "hrp": "txpool",
+  "salt": "xpool.v1.testnet-dai2",
+  "hub": {
+    "name": "sepolia",
+    "chainId": 11155111,
+    "rpc": [
+      "https://ethereum-sepolia-rpc.publicnode.com",
+      "https://sepolia.gateway.tenderly.co"
+    ],
+    "usdc": "0x36e08F3A09fEf0e48261226dcA3084A1FBE20aFe",
+    "cctp": {
+      "domain": 0,
+      "tokenMessengerV2": "0x6f975f17ABc22218D6675d6bE3e23144e1f72E2D",
+      "messageTransmitterV2": "0x6f975f17ABc22218D6675d6bE3e23144e1f72E2D"
+    }
+  },
+  "spokes": [
+    {
+      "name": "base",
+      "chainId": 84532,
+      "stack": "opstack",
+      "rpc": [
+        "https://base-sepolia-rpc.publicnode.com",
+        "https://base-sepolia.gateway.tenderly.co"
+      ],
+      "usdc": "0x60df9D37B803d93F0c0c4507F12A1328086c8EE4",
+      "l1": {
+        "l1CrossDomainMessenger": "0xC34855F4De64F1840e5686e64278da901e261f20",
+        "optimismPortal": "0x49f53e41452C74589E85cA1677426Ba426459e85"
+      },
+      "l2": {
+        "l2CrossDomainMessenger": "0x4200000000000000000000000000000000000007"
+      },
+      "cctp": {
+        "domain": 6,
+        "tokenMessengerV2": "0x80474970AC2c422A56D31a1971D80F0300E95A9b",
+        "messageTransmitterV2": "0x80474970AC2c422A56D31a1971D80F0300E95A9b"
+      }
+    }
+  ],
+  "params": {
+    "phiBps": 10,
+    "relayerFeeBucket": "10000000000000000",
+    "minDeposit": "1000000000000000000",
+    "maxDeposit": "1000000000000000000000",
+    "maxFastDeposit": "1000000000000000000000",
+    "minWithdraw": "1000000000000000000",
+    "settleFee": {
+      "insert": "75000000000000000",
+      "final": "25000000000000000"
+    },
+    "k": [
+      3,
+      2
+    ],
+    "theta": [
+      2,
+      3
+    ],
+    "omegaBps": 1000,
+    "beta": [
+      1,
+      2
+    ],
+    "sMin": "5000000000000000000",
+    "maxValidators": 32,
+    "evictionMarginBps": 100,
+    "epochSeconds": 300,
+    "unbondSeconds": 691200,
+    "maxBatch": 32,
+    "maxCheckpoint": 64,
+    "minEmptyCheckpointInterval": 300,
+    "feeSplitBps": {
+      "validators": 3000,
+      "lps": 6000,
+      "insurance": 1000
+    },
+    "targetBps": {
+      "11155111": 5000,
+      "84532": 5000
+    },
+    "minRebalance": "2000000000000000000",
+    "tvlCap": {
+      "11155111": "100000000000000000000000",
+      "84532": "100000000000000000000000"
+    },
+    "minGasL2": 1000000,
+    "minGasL1": 1500000,
+    "guardian": "0x137D61d2899ab1cf1003649C04c4549B1f5B6Db5"
+  },
+  "bounds": {
+    "maxDepositHardMax": "10000000000000000000000",
+    "maxFastDepositHardMax": "10000000000000000000000",
+    "tvlCapHardMax": "1000000000000000000000000",
+    "betaMax": [
+      1,
+      1
+    ],
+    "targetBpsMin": 1000,
+    "targetBpsMax": 9000
+  },
+  "artifacts": {
+    "wasm": "sha256:341fb9b77d0746b7916e3a31e0e49b7eb81c3f66ba7d8e4be82294bb6b5d0628",
+    "zkey": "sha256:2c3a87696669a0633a23a405c28069dce75656f238fb4a4304f86ddfe63f2b96",
+    "vkey": "sha256:1c960224110dfc62d8bfef8c0c8a549f10d034b5d4fa627ec53b90954f03be9c",
+    "paths": {
+      "wasm": "circuits/artifacts/transaction.wasm",
+      "zkey": "circuits/artifacts/transaction_final.zkey",
+      "vkey": "circuits/artifacts/verification_key.json"
+    },
+    "_note": "Test trusted setup (PSE ppot_0080_16 + team contribution + beacon). NOT FOR MAINNET."
+  },
+  "_notes": [
+    "DAI pool v2: Sepolia hub + Base Sepolia spoke, rebalanced through the TESTNET-ONLY LockReleaseMessenger",
+    "(CCTP-shaped lock/release with a team attester key, services/test-attester) because Circle CCTP doesn't move DAI.",
+    "5-minute epochs so validators activate quickly on testnet. Guardian = deployer EOA. Amounts in 18-decimal units."
+  ]
+}

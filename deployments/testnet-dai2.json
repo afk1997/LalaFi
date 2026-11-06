@@ -1,0 +1,37 @@
+{
+  "create3Factory": "0x4A4246939dBb20d7D53C8dF8e5a506C4Ac8aBC44",
+  "deployer": "0x137D61d2899ab1cf1003649C04c4549B1f5B6Db5",
+  "environment": "testnet",
+  "hub": {
+    "chainId": 11155111,
+    "contracts": {
+      "DepositManager": "0xC0e2D0B8D628f0e1934e24F186892C93e1C6BeC8",
+      "Groth16Verifier": "0xBA2cdc11f040012B6bca96DCBcECE0A4b8bfb84f",
+      "HubCore": "0x1E9237E03B8044512CCe32b90e056Fecc81ccD99",
+      "LiquidityManager": "0x94E7a4Adc051786142362ADd0BFd0f903352d471",
+      "OpStackHubAdapter": "0xbEdcF9741FD76827315217956412ce4F275d349f",
+      "PoseidonT3": "0xD6de685e7e2c81c96B22e0e0CCaF6777F1e77bF4",
+      "PoseidonT4": "0x30A175B9165b8fe73b64e3bd6822C8AF32a60768",
+      "StakeManager": "0x564719c4A9c932De5c2E4BcC5846c8B00d195066"
+    },
+    "deployBlock": 12079491,
+    "usdc": "0x36e08F3A09fEf0e48261226dcA3084A1FBE20aFe"
+  },
+  "pool": "dai2",
+  "spokes": {
+    "84532": {
+      "contracts": {
+        "Spoke": "0xEb8c3aEF65E277daA7dC85A3C15902D66B74b20B"
+      },
+      "deployBlock": 55410410,
+      "name": "base",
+      "stack": "opstack",
+      "usdc": "0x60df9D37B803d93F0c0c4507F12A1328086c8EE4"
+    }
+  },
+  "token": {
+    "decimals": 18,
+    "name": "Dai Stablecoin",
+    "symbol": "DAI"
+  }
+}
