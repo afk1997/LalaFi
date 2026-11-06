@@ -76,3 +76,58 @@ workstream that needs a change reports it instead of editing.
 | contracts-bridges | `contracts/src/hub/adapters/**`, `contracts/src/spoke/**`, `contracts/src/mocks/**` (except MockUSDC/MockVerifier), `contracts/src/utils/**`, `contracts/script/**`, `contracts/test/bridges/**` |
 | sdk-cli | `packages/**`, `fixtures/sdk-*.json`, `fixtures/zero-hashes.json` |
 | services | `services/**`, `infra/**` |
+
+## Shared formats
+
+### EIP-712 (PRD 5.9) — validators and DepositManager MUST agree
+
+```
+domain   = { name: "xpool", version: "1", chainId: <hub chain id>, verifyingContract: <DepositManager> }
+L2Deposit(uint64 index,uint256 ownerDigest,uint256 amount,uint256 fee,uint64 l2Block)
+DepositBatch(uint64 srcChainId,address spoke,uint64 epoch,L2Deposit[] deposits)L2Deposit(uint64 index,uint256 ownerDigest,uint256 amount,uint256 fee,uint64 l2Block)
+hashStruct(DepositBatch) = keccak256(abi.encode(BATCH_TYPEHASH, srcChainId, spoke, epoch,
+                              keccak256(abi.encodePacked(hashStruct(d_0), ..., hashStruct(d_n)))))
+```
+(Standard EIP-712 array encoding; viem `signTypedData` produces the same digest.)
+
+### `deployments/<env>.json` — written by `contracts/script/*`, read by SDK, CLI and services
+
+```json
+{
+  "environment": "local",
+  "deployer": "0x...",
+  "create3Factory": "0x...",
+  "hub": {
+    "chainId": 31337,
+    "deployBlock": 0,
+    "usdc": "0x...",
+    "contracts": {
+      "HubCore": "0x...", "DepositManager": "0x...", "StakeManager": "0x...", "LiquidityManager": "0x...",
+      "Groth16Verifier": "0x...", "PoseidonT3": "0x...", "PoseidonT4": "0x...",
+      "OpStackHubAdapter": "0x...", "ArbitrumHubAdapter": "0x..."
+    }
+  },
+  "spokes": {
+    "31338": { "name": "base", "stack": "opstack", "deployBlock": 0, "usdc": "0x...", "contracts": { "Spoke": "0x..." } },
+    "31339": { "name": "arbitrum", "stack": "arbitrum", "deployBlock": 0, "usdc": "0x...", "contracts": { "Spoke": "0x..." } }
+  },
+  "mocks": {
+    "31337": { "MockUSDC": "0x...", "MockL1CrossDomainMessenger": "0x...", "MockInbox": "0x...", "MockBridge": "0x...",
+               "MockOutbox": "0x...", "MockTokenMessengerV2": "0x...", "MockMessageTransmitterV2": "0x..." },
+    "31338": { "MockUSDC": "0x...", "MockL2CrossDomainMessenger": "0x...", "MockTokenMessengerV2": "0x...", "MockMessageTransmitterV2": "0x..." },
+    "31339": { "MockUSDC": "0x...", "MockArbSys": "0x0000000000000000000000000000000000000064", "MockTokenMessengerV2": "0x...", "MockMessageTransmitterV2": "0x..." }
+  }
+}
+```
+`mocks` is present only for `local`. Testnet/mainnet external addresses come from `config/<env>.json`.
+
+### Local mocks
+Signatures and events: `contracts/src/interfaces/IMocks.sol`. Local keys are Anvil's default
+mnemonic accounts: 0 deployer, 1 mock-bridge relayer + CCTP attester, 2 relayer, 3 finalizer,
+4 keeper, 5–8 validator operators, 9–12 validator signers, 13+ users/LPs.
+
+### Circuit artifacts
+`circuits/build/transaction.wasm`, `circuits/build/transaction_final.zkey`,
+`circuits/build/verification_key.json`; sha256 of each is recorded in
+`circuits/artifacts/hashes.json` and copied into `config/<env>.json` → `artifacts` at deploy time.
+Witness input names are exactly the PRD 6.2 signal names.
