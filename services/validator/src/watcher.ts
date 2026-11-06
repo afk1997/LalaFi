@@ -52,6 +52,8 @@ export class SpokeWatcher {
     logger: Logger,
     metrics: Metrics,
     private readonly maxSpan = 2_000n,
+    /** Testnet only: sign at latest - N instead of the finalized tag (validator bears the reorg risk). */
+    private readonly confirmations?: bigint,
   ) {
     this.chain = BigInt(spoke.cfg.chainId);
     this.log = logger.child({ component: 'watcher', chain: spoke.cfg.chainId });
@@ -62,7 +64,10 @@ export class SpokeWatcher {
   async tick(): Promise<void> {
     if (this.store.haltedReason(this.chain)) return;
     const { clients, cfg } = this.spoke;
-    const finalized = await minFinalizedBlock(clients, 'finalized');
+    const finalized =
+      this.confirmations === undefined
+        ? await minFinalizedBlock(clients, 'finalized')
+        : (await minFinalizedBlock(clients, 'latest')) - this.confirmations;
     const range = nextRange(this.store.cursor(this.chain), cfg.deployBlock, finalized, this.maxSpan);
     if (!range) return;
 

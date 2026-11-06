@@ -100,7 +100,7 @@ async function main() {
     );
 
   for (const s of ctx.spokes.values()) {
-    const watcher = new SpokeWatcher(s, deposits, logger, metrics);
+    const watcher = new SpokeWatcher(s, deposits, logger, metrics, undefined, settings.l2Confirmations);
     const attester = new Attester(s.cfg, deposits, gossip, attSigner, view, client, logger, metrics);
     loop(`watch-${s.cfg.chainId}`, () => watcher.tick());
     loop(`attest-${s.cfg.chainId}`, () => attester.tick());
