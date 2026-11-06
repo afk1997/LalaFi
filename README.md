@@ -2,6 +2,7 @@
 
 One shielded USDC pool shared by Ethereum, Base and Arbitrum. Deposit on any of the three, spend from
 one global anonymity set, withdraw to any of the three. Spec: [`2026-11-06-xpool-v1-prd.md`](2026-11-06-xpool-v1-prd.md).
+**New here? Read [`docs/EXPLAINER.md`](docs/EXPLAINER.md)** (plain English, ~15 min), then open the web app's *How it works* tab.
 Decisions and deviations taken while building: [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md).
 
 > **Status:** v1 code complete for local + testnet. **Not for mainnet**: the trusted setup is a test
