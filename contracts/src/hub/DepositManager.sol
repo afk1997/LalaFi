@@ -148,9 +148,12 @@ contract DepositManager is IDepositManager, EIP712, ReentrancyGuard {
         if (
             c.hub == address(0) || c.liquidityManager == address(0) || c.stakeManager == address(0)
                 || c.poseidonT4 == address(0) || c.usdc == address(0) || c.baseAdapter == address(0)
-                || c.baseSpoke == address(0) || c.arbAdapter == address(0) || c.arbSpoke == address(0)
+                || c.baseSpoke == address(0)
         ) revert BadConfig();
-        if (c.baseChainId == 0 || c.arbChainId == 0 || c.baseChainId == c.arbChainId) revert BadConfig();
+        // Arbitrum is optional: arbChainId == 0 disables it (adapter and spoke must then be unset).
+        bool arbOn = c.arbChainId != 0;
+        if (arbOn != (c.arbAdapter != address(0)) || arbOn != (c.arbSpoke != address(0))) revert BadConfig();
+        if (c.baseChainId == 0 || c.baseChainId == c.arbChainId) revert BadConfig();
         if (c.baseChainId == block.chainid || c.arbChainId == block.chainid) revert BadConfig();
         if (c.minDeposit == 0 || c.maxDepositHardMax >= AMOUNT_BOUND) revert BadConfig();
         if (c.maxFastDepositHardMax > type(uint128).max / MAX_BATCH) revert BadConfig();
@@ -480,6 +483,7 @@ contract DepositManager is IDepositManager, EIP712, ReentrancyGuard {
     }
 
     function spokeOf(uint64 chainId) external view returns (address) {
+        if (chainId == 0) return address(0);
         if (chainId == baseChainId) return baseSpoke;
         if (chainId == arbChainId) return arbSpoke;
         return address(0);
@@ -488,6 +492,7 @@ contract DepositManager is IDepositManager, EIP712, ReentrancyGuard {
     // ================================================================== internals
 
     function _chainIdx(uint64 chainId) internal view returns (uint256) {
+        if (chainId == 0) revert UnsupportedChain(chainId); // also covers a disabled Arbitrum
         if (chainId == baseChainId) return 0;
         if (chainId == arbChainId) return 1;
         revert UnsupportedChain(chainId);

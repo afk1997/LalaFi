@@ -71,14 +71,18 @@ contract HubCore is IHubCore, MerkleTreeWithHistory, ReentrancyGuardTransient {
     constructor(HubCoreConfig memory c) MerkleTreeWithHistory(c.poseidonT3) {
         if (
             c.verifier.code.length == 0 || c.depositManager == address(0) || c.liquidityManager == address(0)
-                || c.guardian == address(0) || c.baseAdapter == address(0) || c.arbAdapter == address(0)
+                || c.guardian == address(0) || c.baseAdapter == address(0)
         ) revert BadConfig();
+        // Arbitrum is optional: arbChainId == 0 disables it (then its adapter must be unset too).
+        if ((c.arbChainId == 0) != (c.arbAdapter == address(0))) revert BadConfig();
         if (
-            c.baseChainId == 0 || c.arbChainId == 0 || c.baseChainId == c.arbChainId || c.baseChainId == block.chainid
+            c.baseChainId == 0 || c.baseChainId == c.arbChainId || c.baseChainId == block.chainid
                 || c.arbChainId == block.chainid
         ) revert BadConfig();
         if (c.phiBps > _MAX_PHI_BPS || c.relayerFeeBucket == 0) revert BadConfig();
-        if (c.minWithdrawEth == 0 || c.minWithdrawBase == 0 || c.minWithdrawArb == 0) revert BadConfig();
+        if (c.minWithdrawEth == 0 || c.minWithdrawBase == 0 || (c.arbChainId != 0 && c.minWithdrawArb == 0)) {
+            revert BadConfig();
+        }
 
         verifier = IVerifier(c.verifier);
         depositManager = c.depositManager;
@@ -240,6 +244,7 @@ contract HubCore is IHubCore, MerkleTreeWithHistory, ReentrancyGuardTransient {
     }
 
     function isSupportedChain(uint64 chainId) public view returns (bool) {
+        if (chainId == 0) return false; // also covers a disabled Arbitrum (arbChainId == 0)
         return chainId == block.chainid || chainId == baseChainId || chainId == arbChainId;
     }
 
@@ -251,6 +256,7 @@ contract HubCore is IHubCore, MerkleTreeWithHistory, ReentrancyGuardTransient {
     }
 
     function minWithdraw(uint64 dstChainId) public view returns (uint256) {
+        if (dstChainId == 0) revert UnsupportedChain(dstChainId);
         if (dstChainId == block.chainid) return minWithdrawEth;
         if (dstChainId == baseChainId) return minWithdrawBase;
         if (dstChainId == arbChainId) return minWithdrawArb;
@@ -260,6 +266,7 @@ contract HubCore is IHubCore, MerkleTreeWithHistory, ReentrancyGuardTransient {
     // ================================================================== internal
 
     function _l2Adapter(uint64 chainId) internal view returns (address) {
+        if (chainId == 0) return address(0);
         if (chainId == baseChainId) return baseAdapter;
         if (chainId == arbChainId) return arbAdapter;
         return address(0);

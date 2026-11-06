@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
@@ -58,6 +59,7 @@ contract LiquidityManager is ILiquidityManager, ERC20, ReentrancyGuardTransient 
     address public immutable arbAdapter;
     address public immutable arbSpoke;
     uint32 public immutable arbDomain;
+    uint8 internal immutable _lpDecimals;
     uint256 public immutable alphaVBps;
     uint256 public immutable alphaLPBps;
     uint256 public immutable alphaInsBps;
@@ -83,19 +85,25 @@ contract LiquidityManager is ILiquidityManager, ERC20, ReentrancyGuardTransient 
     constructor(LiquidityManagerConfig memory c) ERC20("xpool LP", "xLP") {
         if (
             c.usdc == address(0) || c.hub == address(0) || c.depositManager == address(0)
-                || c.stakeManager == address(0) || c.tokenMessengerV2 == address(0) || c.baseAdapter == address(0)
-                || c.baseSpoke == address(0) || c.arbAdapter == address(0) || c.arbSpoke == address(0)
+                || c.stakeManager == address(0) || c.baseAdapter == address(0) || c.baseSpoke == address(0)
         ) revert BadConfig();
+        // Arbitrum is optional (arbChainId == 0 disables it; adapter/spoke unset, target 0).
+        bool arbOn = c.arbChainId != 0;
+        if (arbOn != (c.arbAdapter != address(0)) || arbOn != (c.arbSpoke != address(0))) revert BadConfig();
+        if (!arbOn && c.targetArbBps != 0) revert BadConfig();
         if (
-            c.baseChainId == 0 || c.arbChainId == 0 || c.baseChainId == c.arbChainId || c.baseChainId == block.chainid
+            c.baseChainId == 0 || c.baseChainId == c.arbChainId || c.baseChainId == block.chainid
                 || c.arbChainId == block.chainid
         ) revert BadConfig();
-        if (c.ethDomain == c.baseDomain || c.ethDomain == c.arbDomain || c.baseDomain == c.arbDomain) {
-            revert BadConfig();
+        // CCTP is optional: tokenMessengerV2 == 0 disables rebalancing (tokens CCTP can't move, e.g. DAI).
+        if (c.tokenMessengerV2 != address(0)) {
+            if (c.ethDomain == c.baseDomain || (arbOn && (c.ethDomain == c.arbDomain || c.baseDomain == c.arbDomain))) {
+                revert BadConfig();
+            }
         }
         if (c.alphaVBps + c.alphaLPBps + c.alphaInsBps != _BPS) revert BadConfig();
         if (c.targetBpsMin > c.targetBpsMax || c.targetBpsMax > _BPS) revert BadConfig();
-        _checkTargets(c.targetBpsMin, c.targetBpsMax, c.targetEthBps, c.targetBaseBps, c.targetArbBps);
+        _checkTargets(c.targetBpsMin, c.targetBpsMax, c.targetEthBps, c.targetBaseBps, c.targetArbBps, arbOn);
         if (c.minRebalance == 0) revert BadConfig();
 
         usdc = IERC20(c.usdc);
@@ -121,12 +129,14 @@ contract LiquidityManager is ILiquidityManager, ERC20, ReentrancyGuardTransient 
 
         _targetBps[uint64(block.chainid)] = c.targetEthBps;
         _targetBps[c.baseChainId] = c.targetBaseBps;
-        _targetBps[c.arbChainId] = c.targetArbBps;
+        if (arbOn) _targetBps[c.arbChainId] = c.targetArbBps;
+        _lpDecimals = IERC20Metadata(c.usdc).decimals();
         emit TargetsUpdated(c.targetEthBps, c.targetBaseBps, c.targetArbBps);
     }
 
-    function decimals() public pure override returns (uint8) {
-        return 6;
+    /// @dev LP shares use the pool token's decimals (6 for USDC, 18 for DAI).
+    function decimals() public view override returns (uint8) {
+        return _lpDecimals;
     }
 
     // ================================================================== ledger (restricted)
@@ -288,6 +298,7 @@ contract LiquidityManager is ILiquidityManager, ERC20, ReentrancyGuardTransient 
         nonReentrant
     {
         if (amount == 0) revert ZeroAmount();
+        if (address(tokenMessenger) == address(0)) revert RebalancePolicy(); // no CCTP for this pool's token
         _requireSupported(srcChainId);
         _requireSupported(dstChainId);
         if (srcChainId == dstChainId || amount < minRebalance) revert RebalancePolicy();
@@ -341,10 +352,10 @@ contract LiquidityManager is ILiquidityManager, ERC20, ReentrancyGuardTransient 
     function setTargets(uint256 ethBps, uint256 baseBps, uint256 arbBps) external nonReentrant {
         address g = hub.guardian();
         if (g == address(0) || msg.sender != g) revert OnlyGuardian();
-        _checkTargets(targetBpsMin, targetBpsMax, ethBps, baseBps, arbBps);
+        _checkTargets(targetBpsMin, targetBpsMax, ethBps, baseBps, arbBps, arbChainId != 0);
         _targetBps[uint64(block.chainid)] = ethBps;
         _targetBps[baseChainId] = baseBps;
-        _targetBps[arbChainId] = arbBps;
+        if (arbChainId != 0) _targetBps[arbChainId] = arbBps;
         emit TargetsUpdated(ethBps, baseBps, arbBps);
     }
 
@@ -373,6 +384,7 @@ contract LiquidityManager is ILiquidityManager, ERC20, ReentrancyGuardTransient 
     }
 
     function _requireSupported(uint64 chainId) internal view {
+        if (chainId == 0) revert UnsupportedChain(chainId);
         if (chainId != block.chainid && chainId != baseChainId && chainId != arbChainId) {
             revert UnsupportedChain(chainId);
         }
@@ -396,8 +408,9 @@ contract LiquidityManager is ILiquidityManager, ERC20, ReentrancyGuardTransient 
         return bytes32(uint256(uint160(a)));
     }
 
-    function _checkTargets(uint256 lo, uint256 hi, uint256 e, uint256 b, uint256 a) internal pure {
-        if (e < lo || e > hi || b < lo || b > hi || a < lo || a > hi || e + b + a != _BPS) revert OutOfBounds();
+    function _checkTargets(uint256 lo, uint256 hi, uint256 e, uint256 b, uint256 a, bool arbOn) internal pure {
+        if (e < lo || e > hi || b < lo || b > hi || e + b + a != _BPS) revert OutOfBounds();
+        if (arbOn ? (a < lo || a > hi) : a != 0) revert OutOfBounds();
     }
 
     /// @dev Fails closed: if DepositManager.beta() is missing or malformed, LP removals revert while

@@ -101,7 +101,8 @@ contract StakeManager is IStakeManager, ReentrancyGuard {
         if (c.usdc == address(0) || c.depositManager == address(0) || c.liquidityManager == address(0)) {
             revert BadConfig();
         }
-        if (c.baseChainId == 0 || c.arbChainId == 0 || c.baseChainId == c.arbChainId) revert BadConfig();
+        // arbChainId == 0: Arbitrum disabled (allocations to it are rejected by _chainIdx).
+        if (c.baseChainId == 0 || c.baseChainId == c.arbChainId) revert BadConfig();
         if (c.sMin == 0) revert BadConfig();
         if (c.kDen == 0 || c.kNum < c.kDen || c.kNum > MAX_FRACTION || c.kDen > MAX_FRACTION) revert BadConfig();
         if (c.thetaNum == 0 || c.thetaDen == 0 || c.thetaNum > c.thetaDen || c.thetaDen > MAX_FRACTION) {
@@ -433,6 +434,7 @@ contract StakeManager is IStakeManager, ReentrancyGuard {
     }
 
     function _chainIdx(uint64 chainId) internal view returns (uint256) {
+        if (chainId == 0) revert UnsupportedChain(chainId);
         if (chainId == baseChainId) return 0;
         if (chainId == arbChainId) return 1;
         revert UnsupportedChain(chainId);
