@@ -9,7 +9,8 @@
     "setup": "bash scripts/setup.sh",
     "test": "vitest run",
     "measure": "tsx scripts/measure.ts",
-    "fixtures": "tsx scripts/fixtures.ts"
+    "fixtures": "tsx scripts/fixtures.ts",
+    "typecheck": "tsc -p tsconfig.json"
   },
   "devDependencies": {
     "@noble/hashes": "^1.8.0",
