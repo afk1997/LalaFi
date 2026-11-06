@@ -19,6 +19,10 @@ export interface RawChainConfig {
 
 export interface RawConfig {
   environment: Env;
+  /** Pool id when a deployment is one of several (one pool per token), e.g. "dai". */
+  pool?: string;
+  /** Pool token metadata; defaults to USDC / 6 decimals. */
+  token?: { symbol: string; name?: string; decimals: number };
   hrp: string;
   hub: RawChainConfig;
   spokes: RawChainConfig[];
@@ -85,8 +89,17 @@ export interface ArtifactPins {
   vkey?: string;
 }
 
+export interface PoolToken {
+  symbol: string;
+  name: string;
+  decimals: number;
+}
+
 export interface ResolvedEnv {
   env: Env;
+  /** Pool id ("usdc" for the default deployment). */
+  pool: string;
+  token: PoolToken;
   hrp: string;
   hub: ResolvedHub;
   spokes: ResolvedSpoke[];
@@ -172,8 +185,13 @@ export function resolveEnv(cfg: RawConfig, dep: RawDeployments): ResolvedEnv {
   };
   if (params.relayerFeeBucket === 0n) throw new ConfigError('relayerFeeBucket must be > 0');
   if (params.phiBps > 10_000n) throw new ConfigError('phiBps > 10000');
+  const t = cfg.token ?? { symbol: 'USDC', name: 'USD Coin', decimals: 6 };
+  if (!/^[A-Za-z0-9.]{1,12}$/.test(t.symbol)) throw new ConfigError('token.symbol invalid');
+  if (!Number.isInteger(t.decimals) || t.decimals < 0 || t.decimals > 36) throw new ConfigError('token.decimals invalid');
   return {
     env: cfg.environment,
+    pool: (cfg.pool ?? t.symbol).toLowerCase(),
+    token: { symbol: t.symbol, name: t.name ?? t.symbol, decimals: t.decimals },
     hrp: cfg.hrp,
     hub,
     spokes,
