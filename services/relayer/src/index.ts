@@ -50,6 +50,7 @@ async function main() {
     routes: relayerRoutes(svc),
     logger,
     maxBodyBytes: settings.maxBodyBytes,
+    corsOrigins: settings.corsOrigins,
     rateLimiter: new RateLimiter(settings.rateLimit),
     onRequest: (route, status) => httpRequests.inc({ route, status: String(status) }),
   });

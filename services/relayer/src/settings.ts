@@ -20,12 +20,18 @@ export interface RelayerSettings {
   resendAfterSec: { opstack: number; arbitrum: number };
   maxResends: number;
   monitorIntervalMs: number;
+  /** Browser origins allowed to call the API (apps/web). */
+  corsOrigins: string[];
 }
 
 export function loadSettings(cfg: XpoolConfig, env: NodeJS.ProcessEnv = process.env): RelayerSettings {
   const stateDir = envStr(env, 'STATE_DIR', join(cfg.root, '.xpool', 'relayer'));
   return {
     port: envInt(env, 'RELAYER_PORT', 8080),
+    corsOrigins: envStr(env, 'RELAYER_CORS_ORIGINS', cfg.isLocal ? 'http://localhost:5173,http://127.0.0.1:5173' : '')
+      .split(',')
+      .map((o) => o.trim().replace(/\/+$/, ''))
+      .filter(Boolean),
     host: envStr(env, 'RELAYER_HOST', '0.0.0.0'),
     metricsPort: envInt(env, 'METRICS_PORT', 9101),
     dbPath: join(stateDir, 'relayer.sqlite'),

@@ -44,6 +44,20 @@ export interface HttpServerOptions {
   rateLimiter?: RateLimiter;
   keyer?: ClientKeyer;
   onRequest?: (route: string, status: number, ms: number) => void;
+  /** Browser origins allowed to call this API (exact match, e.g. "https://app.example"). "*" allows any. */
+  corsOrigins?: readonly string[];
+}
+
+/** CORS for an allow-listed Origin only. The Origin value is never logged or stored. */
+function applyCors(req: IncomingMessage, res: ServerResponse, allowed: readonly string[]): void {
+  const origin = req.headers.origin;
+  if (!origin || allowed.length === 0) return;
+  if (!allowed.includes('*') && !allowed.includes(origin)) return;
+  res.setHeader('access-control-allow-origin', allowed.includes('*') ? '*' : origin);
+  res.setHeader('vary', 'Origin');
+  res.setHeader('access-control-allow-methods', 'GET, POST, OPTIONS');
+  res.setHeader('access-control-allow-headers', 'content-type');
+  res.setHeader('access-control-max-age', '600');
 }
 
 interface CompiledRoute extends Route {
@@ -108,6 +122,13 @@ export function createJsonServer(opts: HttpServerOptions): Server {
     try {
       const url = new URL(req.url ?? '/', 'http://localhost');
       const method = (req.method ?? 'GET').toUpperCase();
+      applyCors(req, res, opts.corsOrigins ?? []);
+      if (method === 'OPTIONS') {
+        routeName = 'OPTIONS';
+        status = 204;
+        res.writeHead(204).end();
+        return;
+      }
       let match: { route: CompiledRoute; params: Record<string, string> } | undefined;
       let pathMatched = false;
       for (const r of routes) {
