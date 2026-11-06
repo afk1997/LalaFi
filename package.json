@@ -1,0 +1,22 @@
+{
+  "name": "xpool",
+  "private": true,
+  "version": "0.1.0",
+  "description": "xpool v1: cross-chain privacy pool (Ethereum hub, Base + Arbitrum spokes)",
+  "packageManager": "pnpm@10.15.1",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "build": "pnpm -r --filter './packages/**' --filter './services/**' build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "contracts:build": "cd contracts && forge build",
+    "contracts:test": "cd contracts && forge test",
+    "circuits:build": "pnpm --filter @xpool/circuits build"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "@types/node": "^22.9.0",
+    "vitest": "^2.1.4",
+    "tsx": "^4.19.2"
+  }
+}

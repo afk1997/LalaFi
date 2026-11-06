@@ -1,0 +1,27 @@
+.DS_Store
+node_modules/
+dist/
+coverage/
+*.log
+.env
+.env.*
+!.env.example
+
+# foundry
+contracts/out/
+contracts/cache/
+contracts/broadcast/*/31337/
+contracts/broadcast/*/31338/
+contracts/broadcast/*/31339/
+
+# circuits build outputs (large); pinned hashes live in config
+circuits/build/
+circuits/ptau/
+*.ptau
+*.zkey
+!circuits/artifacts/*.zkey
+
+# local wallet / service state
+.xpool/
+*.sqlite
+*.db
