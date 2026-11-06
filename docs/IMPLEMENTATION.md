@@ -144,3 +144,40 @@ Groth16Verifier()  (snarkjs-generated)  PoseidonT3 / PoseidonT4 (poseidon-solidi
 Source paths: `src/hub/{HubCore,DepositManager,StakeManager,LiquidityManager}.sol`,
 `src/hub/adapters/{OpStackHubAdapter,ArbitrumHubAdapter}.sol`, `src/spoke/{Spoke,OpStackSpoke,ArbitrumSpoke}.sol`,
 `src/verifier/Groth16Verifier.sol`.
+
+## Deviations and builder's calls (recorded at merge)
+
+**Circuit**
+- Phase-1 ptau is PSE `ppot_0080_16.ptau` (the Hermez mirror returns 403); blake2b pinned and `snarkjs powersoftau verify` passed. 16,126 constraints.
+- The verifier carries a 3-line "DO NOT EDIT / NOT FOR MAINNET" header; a test checks the rest is byte-identical to a fresh snarkjs export.
+- The circuit does not range-check `publicAmount`; HubCore recomputes it from ExtData (PRD 5.7), as required.
+
+**HubCore / LiquidityManager**
+- `LeavesInserted.count` includes the Z0 padding leaf (always even). The SDK relies on this.
+- Frontier nodes are written only once their left subtree completes (same roots as PRD 5.6, fewer SSTOREs).
+- Measured: one `PoseidonT3` call ≈ 32k gas (PRD estimated 21k), so a pair insert ≈ 816k and `transact` ≈ 1.2M with real Groth16.
+
+**DepositManager / StakeManager**
+- Ethereum TVL cap = `usdc.balanceOf(LiquidityManager) + amount ≤ tvlCapEth`.
+- In the grace epoch, a signer's stake counts as min(snapshot e, snapshot e−1).
+- `addExposure` additionally rejects k·(total exposure on both chains) > bonded + unbonding; allocation decreases are deferred while exposure is open; `unbondSeconds ≥ 2·epochSeconds`.
+- Prover reward cap uses max(coveredLoss, the validator's total open exposure), so equivocation (coveredLoss = 0) or multiple fraud batches can never leave insurance short.
+- Settlement-fee bounties are capped at the fee paid on L2; a slashed batch's insert fees go to the prover. Rewards are forfeited on slash.
+- `DepositManager.beta()` view exists (LiquidityManager uses it for the LP-exit valve).
+
+**Spokes / adapters**
+- Arbitrum hub adapter sets the spoke as the retryable's `callValueRefundAddress` (beneficiary) so nobody else can cancel a rebalance ticket.
+- `receiveFromHub` reverts when given < 220k gas, so a starved delivery stays replayable instead of being lost.
+- Rebalance orders the spoke can't fund yet join the same FIFO queue as releases; failed releases/burns stay reserved.
+- Adapters accept RELEASE/PAUSE only from HubCore and REBALANCE only from LiquidityManager.
+- Extra spoke surface for keepers (in `Spoke.sol`, not `ISpoke`): `retryFailedRebalance`, `RebalanceQueued/Failed`, `queuedAmount`, `failedAmount`, `freeBalance`, `rebalanceState`.
+
+**SDK / CLI**
+- HKDF info encodes `acct` as 4-byte big-endian after `"spend/"` / `"enc/"`.
+- Extra override flags beyond PRD 12.3: `--ignore-delay` (W3), `--ignore-anonymity` (W4), `--allow-linked-recipient` (W2).
+- Self-relay to Arbitrum is refused (needs retryable parameter estimation; use a relayer).
+
+**Services**
+- Relayer fee quotes use a fixed ETH price (`RELAYER_ETH_PRICE_USDC`), no oracle.
+- Real-bridge finalization (OP prove/finalize, Arbitrum outbox) is implemented but only exercised on testnet; failed releases are retried via `HubCore.resendRelease` (no Arbitrum auto-redeem / OP replay yet).
+- Validator slashing-protection DB is keyed by (hub chain, DepositManager, chain, index): wipe `STATE_DIR` when you redeploy locally (CREATE3 reuses addresses).
