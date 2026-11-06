@@ -231,7 +231,9 @@ contract VerifyDeployment is XpoolBase {
             0,
             string.concat("HubCore: Arbitrum (", vm.toString(uint256(arbId)), ") unsupported")
         );
-        _eqA(a.hubCore, abi.encodeWithSignature("adapterFor(uint64)", arbId), address(0), "HubCore.adapterFor(arb) == 0");
+        _check(
+            _reverts(a.hubCore, abi.encodeWithSignature("adapterFor(uint64)", arbId)), "HubCore.adapterFor(arb) reverts"
+        );
         _eqA(a.depositManager, abi.encodeWithSignature("spokeOf(uint64)", arbId), address(0), "DM.spokeOf(arb) == 0");
     }
 
@@ -335,6 +337,13 @@ contract VerifyDeployment is XpoolBase {
     function _eqBytes(address t, string memory sig, bytes memory want, string memory what) internal {
         (bool ok, bytes memory ret) = _call(t, abi.encodeWithSignature(sig));
         _check(ok && keccak256(ret) == keccak256(want), what);
+    }
+
+    /// @dev True if `t` has code and the call reverts.
+    function _reverts(address t, bytes memory data) internal view returns (bool) {
+        if (t.code.length == 0) return false;
+        (bool ok,) = t.staticcall(data);
+        return !ok;
     }
 
     function _responds(address t, bytes memory data, string memory what) internal {
