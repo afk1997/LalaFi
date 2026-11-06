@@ -12,6 +12,12 @@ contract MockCrossDomainMessenger is IMockCrossDomainMessenger {
     error AlreadyRelayed();
     error NotInRelay();
     error ReentrantRelay();
+    error InsufficientRelayGas();
+
+    /// @dev Like the real messenger's hasMinGas check: the outer call must carry enough gas to give
+    ///      the target its full gasLimit (EIP-150 63/64 rule + a buffer). Reverting here (instead of
+    ///      recording a failure) is what makes eth_estimateGas size relay transactions correctly.
+    uint256 internal constant RELAY_GAS_BUFFER = 50_000;
 
     address internal constant DEFAULT_SENDER = 0x000000000000000000000000000000000000dEaD;
 
@@ -43,6 +49,7 @@ contract MockCrossDomainMessenger is IMockCrossDomainMessenger {
         bytes32 h = hashMessage(nonce, sender, target, message);
         if (successfulMessages[h]) revert AlreadyRelayed();
 
+        if (gasleft() < (gasLimit * 64) / 63 + RELAY_GAS_BUFFER) revert InsufficientRelayGas();
         _xDomainSender = sender;
         (bool ok,) = target.call{gas: gasLimit}(message);
         _xDomainSender = DEFAULT_SENDER;
