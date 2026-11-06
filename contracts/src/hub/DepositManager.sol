@@ -719,11 +719,15 @@ contract DepositManager is IDepositManager, EIP712, ReentrancyGuard {
     function _slashBatch(uint256 batchId, Batch storage b, uint8 kind, address prover) internal {
         b.status = BatchStatus.Fraud;
         unconfirmedFastValue -= b.amount;
+        // insert fees of items already confirmed in this batch: the submitter forfeits them
+        uint256 bounty = b.insertBounty;
+        b.insertBounty = 0;
         (uint32[] memory ids, uint256[] memory xs) = _signersAndXs(b);
         IStakeManager sm = IStakeManager(stakeManager);
         for (uint256 i; i < ids.length; ++i) {
             sm.slash(ids[i], kind, prover, xs[i]);
         }
+        if (bounty != 0) ILiquidityManager(liquidityManager).creditBounty(prover, bounty);
         emit FraudProven(batchId, kind, prover);
     }
 
