@@ -25,3 +25,6 @@ circuits/ptau/
 .xpool/
 *.sqlite
 *.db
+
+# agent worktrees
+.claude/worktrees/
