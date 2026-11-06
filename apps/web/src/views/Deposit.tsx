@@ -4,7 +4,7 @@ import { AmountPill, CHAIN_MARK, Mark, SelectPill, TOKEN_MARK } from '../compone
 import { balancesOf, settleFee, type WalletBalances } from '../lib/chain';
 import { groupCode, newCode, type DepositCode } from '../lib/code';
 import { performDeposit, type DepositStep } from '../lib/deposit';
-import { chainOf, ENV_NAME, poolById, pools, type Pool } from '../lib/env';
+import { chainOf, depositPools as pools, ENV_NAME, poolById, type Pool } from '../lib/env';
 import { fmtAmount, parseAmount } from '../lib/format';
 import { useWallet } from '../lib/wallet';
 
@@ -49,7 +49,7 @@ export function Deposit() {
   // Once balances arrive, start on the token + chain the wallet holds the most of.
   useEffect(() => {
     if (!bals || autoPicked) return;
-    const best = [...bals.holdings].sort((a, b) => {
+    const best = [...bals.holdings].filter((h) => pools.some((p) => p.id === h.poolId)).sort((a, b) => {
       const x = norm(a.amount, poolById(a.poolId).decimals);
       const y = norm(b.amount, poolById(b.poolId).decimals);
       return x === y ? 0 : y > x ? 1 : -1;

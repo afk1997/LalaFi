@@ -37,6 +37,8 @@ export interface Pool {
   relayerUrl: string;
   /** bech32m prefix of this pool's withdrawal codes. */
   codePrefix: string;
+  /** Superseded pool: still withdrawable with its codes, but not offered for new deposits. */
+  legacy: boolean;
 }
 
 const LABELS: Record<ChainKey, string> = { eth: 'Ethereum', base: 'Base', arb: 'Arbitrum' };
@@ -101,6 +103,7 @@ function loadPools(): Pool[] {
       chains: chainsOf(env),
       relayerUrl: urls[env.pool] ?? fallback,
       codePrefix: codePrefix(env.pool),
+      legacy: (cfg as { legacy?: boolean }).legacy === true,
     });
   }
   // USDC first, then alphabetical
@@ -110,6 +113,9 @@ function loadPools(): Pool[] {
 }
 
 export const pools: Pool[] = loadPools();
+
+/** Pools offered for new deposits. */
+export const depositPools: Pool[] = pools.filter((p) => !p.legacy);
 
 export const poolById = (id: string): Pool => {
   const p = pools.find((x) => x.id === id);
