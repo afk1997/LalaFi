@@ -1,0 +1,20 @@
+# BuildKit per-Dockerfile ignore (context = repo root)
+**/node_modules
+.git
+**/.DS_Store
+**/*.sqlite
+**/*.sqlite-*
+**/.env
+**/.env.*
+.xpool
+deployments
+contracts/out
+contracts/cache
+contracts/broadcast
+contracts/lib
+circuits/build
+circuits/ptau
+**/*.ptau
+**/*.zkey
+**/dist
+**/coverage
