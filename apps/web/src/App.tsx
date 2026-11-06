@@ -35,7 +35,7 @@ export function App() {
 
       <footer className="foot">
         <span>Private {pools.map((p) => p.symbol).join(' and ')} pools across Ethereum and its rollups.</span>
-        {ENV_NAME !== 'mainnet' && <span>Test network: test USDC only, not audited, not for real funds.</span>}
+        {ENV_NAME !== 'mainnet' && <span>Test network: test tokens only, not audited, not for real funds.</span>}
       </footer>
     </div>
   );
