@@ -1,0 +1,34 @@
+{
+  "_warning": "NOT FOR MAINNET. Single team contribution + CSPRNG beacon; mainnet requires the MPC ceremony of PRD 6.7.",
+  "circuit": "Transaction(24, 2, 2, 1)",
+  "circom": "circom compiler 2.2.2",
+  "snarkjs": "0.7.5",
+  "ptau": {
+    "name": "ppot_0080_16.ptau",
+    "source": "https://pse-trusted-setup-ppot.s3.eu-central-1.amazonaws.com/pot28_0080/ppot_0080_16.ptau",
+    "blake2b512": "9532c6c04a21335577713724b6d46c266a93aa621b78882b8b64b26f3080a8f0d974aded00c4d781adbdf493a45c51db455108f7aeedb49971569d57a56971c3",
+    "pinnedBy": "pinned blake2b + snarkjs powersoftau verify"
+  },
+  "circuitHash": "4c7076526a1c40b0995f05aafd214c108e6b3fd0e08e7167088b4a18d0efdefdb42bcbb20173e623ac1ee70e6c0ba7881ded383f0f3e2f1ba4bd6bf5b31f3ae1",
+  "contributions": [
+    {
+      "name": "xpool team contribution #1 (NOT FOR MAINNET)",
+      "hash": "690f29dbaa95371c9310e66279d87789ec8f0a71297fd5cc10ef8866ac08433d9c22c39cce9b680cc9e0021005738a783785741e1d39bf564a7ade7ab8f55ee4"
+    }
+  ],
+  "beacon": {
+    "hash": "023634ad6e8992e3f633f7d17945f9172e3e1ba9ec689884843a21414f94c6f8",
+    "iterationsExp": 10,
+    "contributionHash": "3eee97f72f97477be994db888e80f6c98aef78a28cac21f59c0088d1a8dee3f9f8a1c3d0652c9f6244664536fcac367642fb7fe130fcf5ad002b60d296fc94b8",
+    "source": "OS CSPRNG (test setup)"
+  },
+  "hashes": {
+    "_note": "NOT FOR MAINNET. Test trusted setup for local/testnet. Copy wasm/zkey/vkey into config/<env>.json -> artifacts.",
+    "wasm": "sha256:341fb9b77d0746b7916e3a31e0e49b7eb81c3f66ba7d8e4be82294bb6b5d0628",
+    "zkey": "sha256:2c3a87696669a0633a23a405c28069dce75656f238fb4a4304f86ddfe63f2b96",
+    "vkey": "sha256:1c960224110dfc62d8bfef8c0c8a549f10d034b5d4fa627ec53b90954f03be9c",
+    "r1cs": "sha256:15556828baeee547a3111f8d826de3a295ffb70d8a169b859b0e8833852d7c27",
+    "verifierSol": "sha256:49074a94739e8f6f256222add82c26cbfce17b24f67b04261684b4e3f998fa9a"
+  },
+  "createdAt": "2026-11-06T18:43:53.204Z"
+}
