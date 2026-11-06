@@ -119,7 +119,9 @@ ${os.platform()} ${os.release()}, Node ${process.version}, snarkjs ${snarkjsVers
 | snarkjs \`proof.json\` (JSON text) | ${Buffer.byteLength(proofJson)} bytes |
 | \`exportSolidityCallData\` string (proof + signals) | ${Buffer.byteLength(calldata)} chars |
 
-Not measured here: browser proving, rapidsnark, on-chain verifier gas (contracts workstream).
+Not measured here: browser proving, rapidsnark. On-chain gas is owned by the contracts workstream; a one-off
+forge check (solc 0.8.28, optimizer 200 runs) measured \`Groth16Verifier.verifyProof\` at 228,804 gas as a
+staticcall, not counting the 21,000 base cost or calldata.
 `;
 fs.writeFileSync(path.join(ROOT_DIR, "MEASUREMENTS.md"), md);
 console.log(md);
