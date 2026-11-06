@@ -6,7 +6,7 @@ import { abi, createNote, encryptNote, ownerDigest } from '@xpool/sdk/browser';
 import { erc20Abi, toHex, type Abi, type Address, type Hash } from 'viem';
 import { allowance, settleFee, waitForReceipt } from './chain';
 import type { DepositCode } from './code';
-import { chainById, env } from './env';
+import { chainOf } from './env';
 import { write } from './wallet';
 
 export type DepositStep = 'approve' | 'approving' | 'deposit' | 'depositing' | 'done';
@@ -19,26 +19,26 @@ export async function performDeposit(opts: {
   onStep: (s: DepositStep, hash?: Hash) => void;
 }): Promise<Hash> {
   const { code, chainId, amount, owner, onStep } = opts;
-  const c = chainById(chainId);
-  const isHub = chainId === env.hub.chainId;
+  const pool = code.pool;
+  const c = chainOf(pool, chainId);
+  const isHub = chainId === pool.env.hub.chainId;
   const note = createNote(amount, code.keys.pk);
   const P = ownerDigest(note.pk, note.blinding);
   const encNote = toHex(encryptNote(code.keys.encPk, { amount, blinding: note.blinding }));
-  const total = amount + (isHub ? 0n : await settleFee(chainId));
+  const total = amount + (isHub ? 0n : await settleFee(pool, chainId));
 
   // Approve exactly what this deposit pulls (no unlimited approvals).
-  if ((await allowance(chainId, c.usdc, owner, c.depositTo)) < total) {
+  if ((await allowance(pool, chainId, c.token, owner, c.depositTo)) < total) {
     onStep('approve');
-    const h = await write(chainId, c.usdc, erc20Abi as Abi, 'approve', [c.depositTo, total]);
+    const h = await write(chainId, c.token, erc20Abi as Abi, 'approve', [c.depositTo, total]);
     onStep('approving', h);
-    await waitForReceipt(chainId, h);
+    await waitForReceipt(pool, chainId, h);
   }
   onStep('deposit');
-  const target = isHub ? env.hub.contracts.DepositManager : c.depositTo;
   const depositAbi = (isHub ? abi.depositManagerAbi : abi.spokeAbi) as Abi;
-  const h = await write(chainId, target, depositAbi, 'deposit', [amount, P, encNote]);
+  const h = await write(chainId, c.depositTo, depositAbi, 'deposit', [amount, P, encNote]);
   onStep('depositing', h);
-  await waitForReceipt(chainId, h);
+  await waitForReceipt(pool, chainId, h);
   onStep('done', h);
   return h;
 }

@@ -1,27 +1,24 @@
-const DECIMALS = 6n;
-const UNIT = 10n ** DECIMALS;
-
-/** "12.5" → 12_500_000n. Returns undefined for anything that isn't a plain positive decimal. */
-export function parseUsdc(s: string): bigint | undefined {
+/** "12.5" → 12.5 × 10^decimals. Undefined for anything that isn't a plain positive decimal. */
+export function parseAmount(s: string, decimals: number): bigint | undefined {
   const t = s.trim().replace(/,/g, '');
-  if (!/^\d*(\.\d{0,6})?$/.test(t) || t === '' || t === '.') return undefined;
+  const re = new RegExp(`^\\d*(\\.\\d{0,${decimals}})?$`);
+  if (!re.test(t) || t === '' || t === '.') return undefined;
   const [i = '0', f = ''] = t.split('.');
-  return BigInt(i || '0') * UNIT + BigInt((f + '000000').slice(0, 6));
+  return BigInt(i || '0') * 10n ** BigInt(decimals) + BigInt((f + '0'.repeat(decimals)).slice(0, decimals) || '0');
 }
 
-/** 12_500_000n → "12.5"; keeps up to `max` decimals, trims zeros; tiny non-zero values show as "<0.01". */
-export function fmtUsdc(v: bigint, max = 2): string {
+/** Base units → "1,234.56"; up to `max` decimals, zeros trimmed; a tiny non-zero shows as "<0.01". */
+export function fmtAmount(v: bigint, decimals: number, max = 2): string {
   const neg = v < 0n;
   const a = neg ? -v : v;
-  const scale = 10n ** BigInt(6 - max);
-  const shown = a / scale;
-  if (shown === 0n && a > 0n) return `${neg ? '-' : ''}<${(1 / 10 ** max).toFixed(max)}`;
-  const i = a / UNIT;
-  const f = (a % UNIT).toString().padStart(6, '0').slice(0, max).replace(/0+$/, '');
-  return `${neg ? '-' : ''}${i.toLocaleString('en-US')}${f ? `.${f}` : ''}`;
+  const unit = 10n ** BigInt(decimals);
+  const keep = Math.min(max, decimals);
+  if (a > 0n && a < 10n ** BigInt(decimals - keep)) return `${neg ? '-' : ''}<${(1 / 10 ** keep).toFixed(keep)}`;
+  const f = (a % unit).toString().padStart(decimals, '0').slice(0, keep).replace(/0+$/, '');
+  return `${neg ? '-' : ''}${(a / unit).toLocaleString('en-US')}${f ? `.${f}` : ''}`;
 }
 
-export function fmtEth(wei: bigint): string {
-  const v = Number(wei) / 1e18;
-  return v === 0 ? '0' : v < 0.0001 ? '<0.0001' : v.toFixed(4);
+/** For prefilling an input: no grouping commas. */
+export function plainAmount(v: bigint, decimals: number, max = 2): string {
+  return fmtAmount(v, decimals, max).replace(/,/g, '').replace(/^<.*/, '0');
 }

@@ -6,7 +6,6 @@ import {
   type SolidityProof,
   type WitnessInput,
 } from '@xpool/sdk/browser';
-import { env } from './env';
 
 let worker: Worker | undefined;
 let seq = 0;
@@ -17,7 +16,7 @@ function getWorker(): Worker {
 }
 
 /** Proves in a Web Worker and checks the circuit's public signals equal the prepared public inputs. */
-export function prove(witness: WitnessInput, pi: PublicInputs): Promise<SolidityProof> {
+export function prove(witness: WitnessInput, pi: PublicInputs, pins: { wasm?: string; zkey?: string }): Promise<SolidityProof> {
   const id = ++seq;
   const w = getWorker();
   return new Promise((resolve, reject) => {
@@ -38,7 +37,7 @@ export function prove(witness: WitnessInput, pi: PublicInputs): Promise<Solidity
       witness,
       wasmUrl: '/circuits/transaction.wasm',
       zkeyUrl: '/circuits/transaction_final.zkey',
-      pins: { wasm: env.artifacts.wasm, zkey: env.artifacts.zkey },
+      pins,
     });
   });
 }

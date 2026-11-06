@@ -13,16 +13,16 @@ import { hkdf } from '@noble/hashes/hkdf.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { bech32m } from '@scure/base';
 import { deriveKeys, randomBytes, type SpendingKeys } from '@xpool/sdk/browser';
-import { ENV_NAME } from './env';
+import { pools, type Pool } from './env';
 
 const VERSION = 1;
 const SEED_BYTES = 32;
-const HRP = { mainnet: 'xnote', testnet: 'txnote', local: 'lxnote' } as const;
-const hrp = HRP[ENV_NAME];
 
 export interface DepositCode {
   text: string;
   keys: SpendingKeys;
+  /** The pool (token) this code belongs to, from its prefix. */
+  pool: Pool;
 }
 
 const enc = new TextEncoder();
@@ -32,13 +32,13 @@ function walletSeed(code: Uint8Array): Uint8Array {
   return hkdf(sha256, code, enc.encode('xpool/code'), enc.encode(`v${VERSION}`), 64);
 }
 
-function fromSeed(seed: Uint8Array): DepositCode {
+function fromSeed(pool: Pool, seed: Uint8Array): DepositCode {
   const words = bech32m.toWords(Uint8Array.of(VERSION, ...seed));
-  return { text: bech32m.encode(hrp, words, 200), keys: deriveKeys(walletSeed(seed), 0) };
+  return { text: bech32m.encode(pool.codePrefix, words, 200), keys: deriveKeys(walletSeed(seed), 0), pool };
 }
 
-export function newCode(): DepositCode {
-  return fromSeed(randomBytes(SEED_BYTES));
+export function newCode(pool: Pool): DepositCode {
+  return fromSeed(pool, randomBytes(SEED_BYTES));
 }
 
 export type ParseResult = { ok: true; code: DepositCode } | { ok: false; reason: string };
@@ -46,9 +46,11 @@ export type ParseResult = { ok: true; code: DepositCode } | { ok: false; reason:
 export function parseCode(input: string): ParseResult {
   const text = input.trim().toLowerCase().replace(/\s+/g, '');
   if (!text) return { ok: false, reason: 'Paste the code you saved when you deposited.' };
-  const other = Object.entries(HRP).find(([env, h]) => env !== ENV_NAME && text.startsWith(`${h}1`));
-  if (other) return { ok: false, reason: `This code is for ${other[0]}, not ${ENV_NAME}.` };
-  if (!text.startsWith(`${hrp}1`)) return { ok: false, reason: `Codes start with ${hrp}1.` };
+  const pool = pools.find((p) => text.startsWith(`${p.codePrefix}1`));
+  if (!pool) {
+    const known = pools.map((p) => `${p.codePrefix}1`).join(' or ');
+    return { ok: false, reason: `That isn't a code for this site. Codes here start with ${known}.` };
+  }
   let bytes: Uint8Array;
   try {
     bytes = bech32m.fromWords(bech32m.decode(text as `${string}1${string}`, 200).words);
@@ -56,7 +58,7 @@ export function parseCode(input: string): ParseResult {
     return { ok: false, reason: 'This code has a typo. Check it character by character.' };
   }
   if (bytes.length !== SEED_BYTES + 1 || bytes[0] !== VERSION) return { ok: false, reason: 'Unsupported code version.' };
-  return { ok: true, code: fromSeed(bytes.slice(1)) };
+  return { ok: true, code: fromSeed(pool, bytes.slice(1)) };
 }
 
 /** Groups of 6 for reading aloud / checking by eye. Separators are ignored when parsing. */

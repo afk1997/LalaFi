@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getAddress, isAddress, type Address, type Hash } from 'viem';
-import { AmountPill, CHAIN_MARK, FieldPill, Mark, SelectPill, USDC_MARK } from '../components/pills';
+import { AmountPill, CHAIN_MARK, FieldPill, Mark, SelectPill, TOKEN_MARK } from '../components/pills';
 import { available } from '../lib/chain';
 import { parseCode, type DepositCode } from '../lib/code';
-import { chainById, chains, env } from '../lib/env';
-import { fmtUsdc, parseUsdc } from '../lib/format';
+import { chainOf, pools } from '../lib/env';
+import { fmtAmount, parseAmount, plainAmount } from '../lib/format';
 import { withdrawalHints } from '../lib/privacy';
 import { warmProver } from '../lib/prover';
 import { scan, type ScanResult } from '../lib/scan';
@@ -30,7 +30,7 @@ export function Withdraw() {
     warmProver();
     setStage({ kind: 'scanning', code: r.code, progress: 0 });
     try {
-      const scanned = await scan(r.code.keys, (p) => setStage({ kind: 'scanning', code: r.code, progress: p }));
+      const scanned = await scan(r.code.pool, r.code.keys, (p) => setStage({ kind: 'scanning', code: r.code, progress: p }));
       setStage({ kind: 'ready', code: r.code, scanned });
     } catch (e) {
       setError(`Couldn't read the chains: ${(e as Error).message.split('\n')[0]}. Try again in a moment.`);
@@ -48,7 +48,7 @@ export function Withdraw() {
             label="Withdrawal code"
             value={codeText}
             onChange={(v) => (setCodeText(v), setError(undefined))}
-            placeholder="txnote1…"
+            placeholder={`${pools[0]!.codePrefix}1…`}
             width={18}
             display={codeText.length > 18 ? `${codeText.slice(0, 10)}…${codeText.slice(-6)}` : undefined}
             mono
@@ -79,16 +79,18 @@ export function Withdraw() {
   }
 
   if (stage.kind === 'sent') {
-    const c = chainById(stage.chainId);
+    const pool = stage.code.pool;
+    const c = chainOf(pool, stage.chainId);
+    const hubExplorer = chainOf(pool, pool.env.hub.chainId).explorer;
     return (
       <section>
         <h1 className="sentence swap">
-          Sent {fmtUsdc(stage.amount)} USDC to {shortAddress(stage.recipient)} on {c.label}.
+          Sent {fmtAmount(stage.amount, pool.decimals)} {pool.symbol} to {shortAddress(stage.recipient)} on {c.label}.
         </h1>
-        <p className="lead">It arrives {arrivalText(stage.chainId)}. Anything left stays on the same code.</p>
+        <p className="lead">It arrives {arrivalText(pool, stage.chainId)}. Anything left stays on the same code.</p>
         <div className="actions">
-          {stage.txHash && chainById(env.hub.chainId).explorer && (
-            <a className="link" href={`${chainById(env.hub.chainId).explorer}/tx/${stage.txHash}`} target="_blank" rel="noreferrer noopener">
+          {stage.txHash && hubExplorer && (
+            <a className="link" href={`${hubExplorer}/tx/${stage.txHash}`} target="_blank" rel="noreferrer noopener">
               View it on the Ethereum explorer
             </a>
           )}
@@ -126,23 +128,27 @@ function Ready({
 }) {
   const { address: connected } = useWallet();
   const { scanned, code } = stage;
+  const pool = code.pool;
+  const env = pool.env;
+  const sym = pool.symbol;
+  const fmt = (v: bigint) => fmtAmount(v, pool.decimals);
   const busy = stage.kind === 'busy';
   const [amount, setAmount] = useState('');
   const [recipient, setRecipient] = useState('');
-  const [chainId, setChainId] = useState<number>(chains.find((c) => c.key === 'arb')?.id ?? chains[0]!.id);
+  const [chainId, setChainId] = useState<number>((pool.chains.find((c) => c.key === 'arb') ?? pool.chains.find((c) => c.key === 'base') ?? pool.chains[0]!).id);
   const [q, setQ] = useState<WithdrawQuote>();
   const [quoteError, setQuoteError] = useState<string>();
   const [liquidity, setLiquidity] = useState<Record<number, bigint>>({});
   const [accepted, setAccepted] = useState(false);
   const [error, setError] = useState<string>();
 
-  const w = parseUsdc(amount);
+  const w = parseAmount(amount, pool.decimals);
   const to = isAddress(recipient.trim(), { strict: false }) ? (getAddress(recipient.trim()) as Address) : undefined;
-  const chain = chainById(chainId);
+  const chain = chainOf(pool, chainId);
 
   useEffect(() => {
-    void Promise.all(chains.map(async (c) => [c.id, await available(c.id).catch(() => 0n)] as const)).then((l) => setLiquidity(Object.fromEntries(l)));
-  }, []);
+    void Promise.all(pool.chains.map(async (c) => [c.id, await available(pool, c.id).catch(() => 0n)] as const)).then((l) => setLiquidity(Object.fromEntries(l)));
+  }, [pool]);
 
   // Quote (relayer fee) for the current chain and amount; debounced.
   useEffect(() => {
@@ -150,15 +156,15 @@ function Ready({
     setQuoteError(undefined);
     const amt = w && w > 0n ? w : env.params.minWithdraw;
     const t = setTimeout(() => {
-      quoteWithdraw(chainId, amt).then(setQ, (e: Error) => setQuoteError(`The relayer isn't reachable (${e.message.split('\n')[0]}).`));
+      quoteWithdraw(pool, chainId, amt).then(setQ, (e: Error) => setQuoteError(`The relayer isn't reachable (${e.message.split('\n')[0]}).`));
     }, 350);
     return () => clearTimeout(t);
-  }, [chainId, w]);
+  }, [pool, chainId, w]);
 
   // Default the amount to everything the code can withdraw once the first quote arrives.
   useEffect(() => {
-    if (q && amount === '' && scanned.balance > 0n) setAmount(fmtUsdc(maxWithdraw(scanned.balance, q.quote.relayerFee)).replace(/,/g, ''));
-  }, [q, amount, scanned.balance]);
+    if (q && amount === '' && scanned.balance > 0n) setAmount(plainAmount(maxWithdraw(pool, scanned.balance, q.quote.relayerFee), pool.decimals));
+  }, [q, amount, scanned.balance, pool]);
 
   const hints = useMemo(() => withdrawalHints({ scanned, recipient: to, connected, amount: w }), [scanned, to, connected, w]);
   useEffect(() => setAccepted(false), [hints.length]);
@@ -166,15 +172,16 @@ function Ready({
   const problem = useMemo(() => {
     if (scanned.balance === 0n) return undefined;
     if (!w) return 'Enter an amount.';
-    if (w < env.params.minWithdraw) return `The smallest withdrawal is ${fmtUsdc(env.params.minWithdraw)} USDC.`;
-    if (!to) return 'Enter the address that should receive the USDC.';
+    if (w < env.params.minWithdraw) return `The smallest withdrawal is ${fmt(env.params.minWithdraw)} ${sym}.`;
+    if (!to) return `Enter the address that should receive the ${sym}.`;
     if (!q) return quoteError ?? 'Getting the relayer fee…';
-    if (q.total > scanned.balance) return `With fees this needs ${fmtUsdc(q.total)} USDC; the code holds ${fmtUsdc(scanned.balance)}.`;
+    if (q.total > scanned.balance) return `With fees this needs ${fmt(q.total)} ${sym}; the code holds ${fmt(scanned.balance)}.`;
     const liq = liquidity[chainId];
-    if (liq !== undefined && liq < w) return `${chain.label} can pay out ${fmtUsdc(liq)} USDC right now. Pick another chain or a smaller amount.`;
+    if (liq !== undefined && liq < w) return `${chain.label} can pay out ${fmt(liq)} ${sym} right now. Pick another chain or a smaller amount.`;
     if (hints.length > 0 && !accepted) return undefined;
     return undefined;
-  }, [w, to, q, quoteError, scanned.balance, liquidity, chainId, chain.label, hints.length, accepted]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [w, to, q, quoteError, scanned.balance, liquidity, chainId, chain.label, hints.length, accepted, pool]);
 
   const go = async () => {
     if (!w || !to || !q) return;
@@ -190,10 +197,10 @@ function Ready({
 
   const holds = (
     <p className="lead" style={{ marginTop: 0, marginBottom: 18 }}>
-      This code holds <strong>{fmtUsdc(scanned.balance)} USDC</strong>
+      This code holds <strong>{fmt(scanned.balance)} {sym}</strong>
       {scanned.arrivingTotal > 0n && (
         <>
-          , and <strong>{fmtUsdc(scanned.arrivingTotal)} USDC</strong> more is on its way into the pool
+          , and <strong>{fmt(scanned.arrivingTotal)} {sym}</strong> more is on its way into the pool
         </>
       )}
       .{' '}
@@ -210,14 +217,14 @@ function Ready({
         <h1 className="sentence swap">{scanned.arrivingTotal > 0n ? 'Your deposit is on its way.' : 'Nothing to withdraw yet.'}</h1>
         <p className="lead">
           {scanned.arrivingTotal > 0n
-            ? 'Deposits on Base and Arbitrum take about 30 minutes to land in the pool. Check again shortly.'
+            ? 'Deposits made on an L2 take about 30 minutes to land in the pool. Check again shortly.'
             : 'If you deposited in the last few minutes, it may not be in the pool yet. Otherwise this code has already been withdrawn.'}
         </p>
       </section>
     );
   }
 
-  const chainOptions = chains.map((c) => ({
+  const chainOptions = pool.chains.map((c) => ({
     value: c.id,
     label: (
       <>
@@ -225,7 +232,7 @@ function Ready({
         {c.label}
       </>
     ),
-    detail: liquidity[c.id] !== undefined ? `${fmtUsdc(liquidity[c.id]!)} USDC available` : undefined,
+    detail: liquidity[c.id] !== undefined ? `${fmt(liquidity[c.id]!)} ${sym} available` : undefined,
   }));
 
   const step = busy ? stage.step : undefined;
@@ -245,8 +252,8 @@ function Ready({
           invalid={!!amount && w === undefined}
         />{' '}
         <span className="pill">
-          <Mark color={USDC_MARK} />
-          USDC
+          <Mark color={TOKEN_MARK[sym] ?? '#b9c4c2'} />
+          {sym}
         </span>{' '}
         to{' '}
         <FieldPill
@@ -270,8 +277,8 @@ function Ready({
       <p className="lead">
         {q && w ? (
           <>
-            <strong>{fmtUsdc(w)} USDC</strong> arrives {arrivalText(chainId)}. Fees come out of the code: relayer {fmtUsdc(q.quote.relayerFee)}, pool{' '}
-            {fmtUsdc(q.protocolFee)} USDC. No wallet is needed; a relayer submits it, so none of your addresses touch the pool.
+            <strong>{fmt(w)} {sym}</strong> arrives {arrivalText(pool, chainId)}. Fees come out of the code: relayer {fmt(q.quote.relayerFee)}, pool{' '}
+            {fmt(q.protocolFee)} {sym}. No wallet is needed; a relayer submits it, so none of your addresses touch the pool.
           </>
         ) : (
           <>A relayer submits the withdrawal, so none of your addresses touch the pool. Use an address that has never sent funds into it.</>
@@ -284,7 +291,7 @@ function Ready({
           className="fact"
           style={{ border: 0, cursor: 'pointer' }}
           disabled={!q || busy}
-          onClick={() => q && setAmount(fmtUsdc(maxWithdraw(scanned.balance, q.quote.relayerFee)).replace(/,/g, ''))}
+          onClick={() => q && setAmount(plainAmount(maxWithdraw(pool, scanned.balance, q.quote.relayerFee), pool.decimals))}
         >
           Withdraw everything
         </button>
@@ -324,7 +331,7 @@ function Ready({
           disabled={busy || !!problem || !w || !to || !q || (hints.length > 0 && !accepted)}
           onClick={() => void go()}
         >
-          {busy ? 'Withdrawing…' : `Withdraw ${w ? fmtUsdc(w) : ''} USDC`}
+          {busy ? 'Withdrawing…' : `Withdraw ${w ? fmt(w) : ''} ${sym}`}
         </button>
         {!busy && problem && <span className="why">{problem}</span>}
       </div>

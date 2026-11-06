@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { WalletButton } from './components/WalletButton';
-import { ENV_NAME, NETWORK_LABEL } from './lib/env';
+import { ENV_NAME, NETWORK_LABEL, pools } from './lib/env';
 import { Deposit } from './views/Deposit';
 import { Withdraw } from './views/Withdraw';
 
@@ -34,7 +34,7 @@ export function App() {
       </main>
 
       <footer className="foot">
-        <span>One USDC pool shared by Ethereum, Base and Arbitrum.</span>
+        <span>Private {pools.map((p) => p.symbol).join(' and ')} pools across Ethereum and its rollups.</span>
         {ENV_NAME !== 'mainnet' && <span>Test network: test USDC only, not audited, not for real funds.</span>}
       </footer>
     </div>

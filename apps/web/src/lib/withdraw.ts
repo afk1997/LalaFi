@@ -15,11 +15,16 @@ import {
 import type { Address, Hash } from 'viem';
 import { available } from './chain';
 import type { DepositCode } from './code';
-import { env, ENV_NAME, RELAYER_URL } from './env';
+import { ENV_NAME, type Pool } from './env';
 import { prove } from './prover';
 import type { ScanResult } from './scan';
 
-export const relayer = new RelayerClient({ baseUrl: RELAYER_URL, timeoutMs: 20_000 });
+const relayers = new Map<string, RelayerClient>();
+export function relayerOf(pool: Pool): RelayerClient {
+  let r = relayers.get(pool.id);
+  if (!r) relayers.set(pool.id, (r = new RelayerClient({ baseUrl: pool.relayerUrl, timeoutMs: 20_000 })));
+  return r;
+}
 
 export interface WithdrawQuote {
   quote: RelayerQuote;
@@ -28,8 +33,9 @@ export interface WithdrawQuote {
   total: bigint;
 }
 
-export async function quoteWithdraw(dstChainId: number, w: bigint): Promise<WithdrawQuote> {
-  const quote = await relayer.quote(BigInt(dstChainId), w);
+export async function quoteWithdraw(pool: Pool, dstChainId: number, w: bigint): Promise<WithdrawQuote> {
+  const env = pool.env;
+  const quote = await relayerOf(pool).quote(BigInt(dstChainId), w);
   if (!isBucketMultiple(quote.relayerFee, env.params.relayerFeeBucket)) {
     throw new Error('The relayer quoted an unusual fee that could identify you. Try again later.');
   }
@@ -38,7 +44,8 @@ export async function quoteWithdraw(dstChainId: number, w: bigint): Promise<With
 }
 
 /** Largest w such that w + relayerFee + ceil(w·φ) ≤ balance. */
-export function maxWithdraw(balance: bigint, relayerFee: bigint): bigint {
+export function maxWithdraw(pool: Pool, balance: bigint, relayerFee: bigint): bigint {
+  const env = pool.env;
   let w = ((balance - relayerFee) * 10_000n) / (10_000n + env.params.phiBps);
   while (w > 0n && w + relayerFee + protocolFee(w, env.params.phiBps) > balance) w--;
   return w > 0n ? w : 0n;
@@ -64,8 +71,11 @@ export async function performWithdraw(opts: {
   onStep: (s: WithdrawStep) => void;
 }): Promise<{ spendId: string; txHash?: Hash }> {
   const { code, scanned, dstChainId, recipient, amount, q, onStep } = opts;
+  const pool = code.pool;
+  const env = pool.env;
+  const relayer = relayerOf(pool);
   onStep({ kind: 'checking' });
-  if ((await available(dstChainId)) < amount) {
+  if ((await available(pool, dstChainId)) < amount) {
     throw new Error('Not enough liquidity on that chain right now. Try another chain or a smaller amount.');
   }
   const notes: OwnedNote[] = scanned.notes.filter((n) => !n.spent);
@@ -83,7 +93,7 @@ export async function performWithdraw(opts: {
   );
 
   onStep({ kind: 'proving' });
-  const proof = await prove(spend.witness, spend.publicInputs);
+  const proof = await prove(spend.witness, spend.publicInputs, { wasm: env.artifacts.wasm, zkey: env.artifacts.zkey });
 
   const delay = randomSubmissionDelayMs(MAX_DELAY_MS[ENV_NAME] ?? 15_000);
   onStep({ kind: 'waiting', ms: delay });
@@ -106,9 +116,9 @@ export async function performWithdraw(opts: {
 }
 
 /** Typical arrival time after the hub accepts the withdrawal. */
-export function arrivalText(dstChainId: number): string {
-  if (dstChainId === env.hub.chainId) return 'right away';
-  const s = env.spokes.find((x) => x.chainId === dstChainId);
+export function arrivalText(pool: Pool, dstChainId: number): string {
+  if (dstChainId === pool.env.hub.chainId) return 'right away';
+  const s = pool.env.spokes.find((x) => x.chainId === dstChainId);
   if (ENV_NAME === 'local') return 'in a few seconds';
   return s?.stack === 'arbitrum' ? 'in about 10–15 minutes' : 'in about 2–5 minutes';
 }

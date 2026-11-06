@@ -3,6 +3,8 @@ import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 /** Colour marks so chains are recognisable at a glance (muted versions of each network's own colour). */
 export const CHAIN_MARK: Record<string, string> = { eth: '#9aa6d8', base: '#4d7cf0', arb: '#5fb0dd' };
 export const USDC_MARK = '#6e9be0';
+/** Token marks; unknown tokens get a neutral mark. */
+export const TOKEN_MARK: Record<string, string> = { USDC: USDC_MARK, DAI: '#c99a3c' };
 
 export function Mark({ color }: { color: string }) {
   return <span className="mark" style={{ background: color }} aria-hidden />;

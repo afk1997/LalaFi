@@ -12,8 +12,8 @@ import {
   type PendingDeposit,
   type SpendingKeys,
 } from '@xpool/sdk/browser';
-import { clients } from './chain';
-import { env } from './env';
+import { clientsOf } from './chain';
+import type { Pool } from './env';
 
 class MemoryNotes implements NoteSink {
   notes: OwnedNote[] = [];
@@ -54,7 +54,9 @@ export interface ScanResult {
   arrivingTotal: bigint;
 }
 
-export async function scan(keys: SpendingKeys, onProgress?: (fraction: number) => void): Promise<ScanResult> {
+export async function scan(pool: Pool, keys: SpendingKeys, onProgress?: (fraction: number) => void): Promise<ScanResult> {
+  const env = pool.env;
+  const clients = clientsOf(pool);
   const view = new ChainView(emptySyncState());
   const sink = new MemoryNotes();
   const done = new Map<number, number>();
