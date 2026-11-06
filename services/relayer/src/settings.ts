@@ -35,7 +35,8 @@ export function loadSettings(cfg: XpoolConfig, env: NodeJS.ProcessEnv = process.
     host: envStr(env, 'RELAYER_HOST', '0.0.0.0'),
     metricsPort: envInt(env, 'METRICS_PORT', 9101),
     dbPath: join(stateDir, 'relayer.sqlite'),
-    ethPriceUsdc: parseUsdc(envStr(env, 'RELAYER_ETH_PRICE_USDC', '3000')),
+    // ETH price in the pool token's base units (USDC-style 6-decimal input, scaled to e.g. 18 for DAI).
+    ethPriceUsdc: parseUsdc(envStr(env, 'RELAYER_ETH_PRICE_USDC', '3000')) * 10n ** BigInt(Math.max(0, cfg.token.decimals - 6)),
     feeMarginBps: envBig(env, 'RELAYER_FEE_MARGIN_BPS', 2000n),
     flatFee: envBig(env, 'RELAYER_FLAT_FEE', 0n),
     transactGas: envBig(env, 'RELAYER_TRANSACT_GAS', 900_000n),

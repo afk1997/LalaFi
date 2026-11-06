@@ -11,6 +11,8 @@ import type { Stack } from './types.js';
  *
  * Environment:
  *   XPOOL_ENV            local | testnet | mainnet (default local)
+ *   XPOOL_CONFIG         file stem when several pools share an environment (one pool per token),
+ *                        e.g. testnet-dai -> config/testnet-dai.json + deployments/testnet-dai.json
  *   XPOOL_ROOT           repo root holding config/ and deployments/ (default: search upward from cwd)
  *   XPOOL_RPC_<chainId>  comma-separated RPC override for a chain (e.g. docker hostnames)
  */
@@ -103,7 +105,8 @@ export interface HubConfig {
     StakeManager: Address;
     LiquidityManager: Address;
     OpStackHubAdapter: Address;
-    ArbitrumHubAdapter: Address;
+    /** Absent for pools without an Arbitrum spoke. */
+    ArbitrumHubAdapter?: Address;
   };
 }
 
@@ -133,6 +136,8 @@ export interface XpoolConfig {
   /** Local mock contract addresses by chain id (local only). */
   mockContracts: Record<string, Record<string, Address>>;
   isLocal: boolean;
+  /** Pool token (one pool per token); USDC / 6 decimals by default. */
+  token: { symbol: string; decimals: number };
 }
 
 export const PLACEHOLDER = 'DEPLOYED_MOCK';
@@ -187,7 +192,9 @@ export function resolveConfig(raw: unknown, rawDeployments: unknown, root: strin
       StakeManager: asAddress(c.StakeManager, 'StakeManager'),
       LiquidityManager: asAddress(c.LiquidityManager, 'LiquidityManager'),
       OpStackHubAdapter: asAddress(c.OpStackHubAdapter, 'OpStackHubAdapter'),
-      ArbitrumHubAdapter: asAddress(c.ArbitrumHubAdapter, 'ArbitrumHubAdapter'),
+      ...(cfg.spokes.some((s: { stack?: string }) => s.stack === 'arbitrum')
+        ? { ArbitrumHubAdapter: asAddress(c.ArbitrumHubAdapter, 'ArbitrumHubAdapter') }
+        : {}),
     },
   };
 
@@ -223,7 +230,7 @@ export function resolveConfig(raw: unknown, rawDeployments: unknown, root: strin
       deployBlock: BigInt(d.deployBlock),
       usdc: pick(s.usdc, d.usdc, `spoke ${s.chainId} usdc`),
       spoke: asAddress(d.contracts.Spoke, `spoke ${s.chainId} Spoke`),
-      hubAdapter: s.stack === 'opstack' ? hub.contracts.OpStackHubAdapter : hub.contracts.ArbitrumHubAdapter,
+      hubAdapter: s.stack === 'opstack' ? hub.contracts.OpStackHubAdapter : hub.contracts.ArbitrumHubAdapter!,
       cctp: {
         domain: s.cctp.domain,
         tokenMessengerV2: pick(s.cctp.tokenMessengerV2, sm.MockTokenMessengerV2, `spoke ${s.chainId} cctp.tokenMessengerV2`),
@@ -250,6 +257,7 @@ export function resolveConfig(raw: unknown, rawDeployments: unknown, root: strin
     ...(cfg.mocks ? { mocks: cfg.mocks } : {}),
     mockContracts,
     isLocal: cfg.environment === 'local',
+    token: (cfg as { token?: { symbol: string; decimals: number } }).token ?? { symbol: 'USDC', decimals: 6 },
   };
 }
 
@@ -258,8 +266,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): XpoolConfig {
   if (!['local', 'testnet', 'mainnet'].includes(name)) throw new Error(`bad XPOOL_ENV ${name}`);
   const root = env.XPOOL_ROOT ? resolve(env.XPOOL_ROOT) : findRepoRoot();
   const read = (p: string) => JSON.parse(readFileSync(join(root, p), 'utf8')) as unknown;
-  const cfg = read(`config/${name}.json`);
-  const depPath = `deployments/${name}.json`;
+  const stem = env.XPOOL_CONFIG ?? name;
+  if (!/^[a-z0-9-]+$/.test(stem)) throw new Error(`bad XPOOL_CONFIG ${stem}`);
+  const cfg = read(`config/${stem}.json`) as { environment?: string };
+  if (cfg.environment !== name) throw new Error(`config/${stem}.json is for ${cfg.environment}, not XPOOL_ENV=${name}`);
+  const depPath = `deployments/${stem}.json`;
   if (!existsSync(join(root, depPath))) throw new Error(`missing ${depPath}; deploy first`);
   return resolveConfig(cfg, read(depPath), root, env);
 }
