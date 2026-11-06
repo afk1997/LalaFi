@@ -1,0 +1,3 @@
+# regenerated on every local run
+local.json
+*.predicted.json
