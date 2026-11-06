@@ -1,14 +1,17 @@
 # deployments/
 
-`<env>.json` is written by the deploy scripts in `contracts/script/` and read by the SDK, the CLI and the
-services. `local.json` is regenerated on every local run (git-ignored). `testnet.json` / `mainnet.json`
+`<config>.json` is written by the deploy scripts in `contracts/script/` and read by the SDK, the CLI and the
+services. One pool per token: each pool has its own `config/<config>.json` and `deployments/<config>.json`
+(`XPOOL_CONFIG`, default `XPOOL_ENV`), e.g. `testnet` (USDC) and `testnet-dai` (DAI). `local.json` is regenerated on every local run (git-ignored). `testnet.json` / `mainnet.json`
 are committed after a deployment passes verification (PRD 14.5 step 7).
 
 ## Schema
 
 ```jsonc
 {
-  "environment": "testnet",
+  "environment": "testnet",     // kind: local | testnet | mainnet (from the config's "environment")
+  "pool": "dai",                // copied from the config when present (absent for the USDC pool)
+  "token": { "symbol": "DAI", "name": "Dai Stablecoin", "decimals": 18 },  // likewise (default USDC / 6)
   "deployer": "0x…",            // the EOA that deployed on ALL three chains
   "create3Factory": "0x…",      // same address on every chain
   "hub": {
@@ -24,7 +27,7 @@ are committed after a deployment passes verification (PRD 14.5 step 7).
   "spokes": {
     "84532":  { "name": "base",     "stack": "opstack",  "deployBlock": 0, "usdc": "0x…", "contracts": { "Spoke": "0x…" } },
     "421614": { "name": "arbitrum", "stack": "arbitrum", "deployBlock": 0, "usdc": "0x…", "contracts": { "Spoke": "0x…" } }
-  },
+  },                            // only the spokes in the config; `usdc` = the pool token on that chain
   "mocks": { /* local only, see below */ }
 }
 ```
@@ -37,7 +40,13 @@ are committed after a deployment passes verification (PRD 14.5 step 7).
   `MockTokenMessengerV2`, `MockMessageTransmitterV2`;
   `31338`: `MockUSDC`, `MockL2CrossDomainMessenger`, `MockTokenMessengerV2`, `MockMessageTransmitterV2`;
   `31339`: `MockUSDC`, `MockArbSys` (`0x…64`), `MockTokenMessengerV2`, `MockMessageTransmitterV2`.
-- Testnet / mainnet external addresses (bridges, CCTP) are not repeated here; they come from `config/<env>.json`.
+- Testnet / mainnet external addresses (bridges, CCTP) are not repeated here; they come from `config/<config>.json`.
+- **Optional Arbitrum**: a config without a `"stack": "arbitrum"` spoke deploys with `arbChainId = 0`: no
+  `ArbitrumHubAdapter` (omitted from `hub.contracts`), no Arbitrum spoke (`DeploySpoke` refuses one), and
+  `VerifyDeployment` asserts the hub reports Arbitrum unsupported.
+- **Optional CCTP**: all-zero `cctp.tokenMessengerV2` / `messageTransmitterV2` disable rebalancing (tokens
+  CCTP can't move, e.g. DAI); spokes ignore rebalance orders (`HubMessageIgnored`), VerifyDeployment skips
+  the CCTP probes. Token checks use the config's `token.symbol` / `token.decimals` (default USDC / 6).
 
 ## Addresses: CREATE3
 
@@ -53,16 +62,19 @@ spoke addresses on Ethereum (the Arbitrum adapter uses the spoke address as the 
 
 ## Testnet deployment (PRD 14.5)
 
-All commands run from `contracts/`. Every script reads `config/testnet.json`.
+All commands run from `contracts/`. Every script reads `config/$XPOOL_CONFIG.json` (default
+`config/testnet.json`, the USDC pool). Or run everything with `scripts/deploy-testnet.sh`
+(`POOL=dai scripts/deploy-testnet.sh` for the DAI pool: Sepolia + Base Sepolia only).
 
 | Env var | Needed by | Value |
 |---|---|---|
-| `XPOOL_ENV=testnet` | all | selects `config/testnet.json` |
+| `XPOOL_ENV=testnet` | all | environment kind; selects `config/testnet.json` unless `XPOOL_CONFIG` is set |
+| `XPOOL_CONFIG` | all (optional) | config / deployments file stem, e.g. `testnet-dai`; its `"environment"` must equal `XPOOL_ENV` |
 | `DEPLOYER_PRIVATE_KEY` | DeployHub, DeploySpoke, Seed `advance()` | the one deployer EOA, funded with ETH on all 3 chains |
 | `GUARDIAN` | DeployHub, VerifyDeployment | team Safe on Sepolia (or set `params.guardian` in the config) |
 | `DEPLOYER` | PredictAddresses (optional) | the deployer address, if you don't want to pass the key |
 | `SEED_OPERATOR_KEYS`, `SEED_SIGNERS`, `SEED_LP_KEY` | Seed | comma-separated operator keys / signer addresses; LP key (accounts hold Sepolia USDC + ETH) |
-| `SEED_BOND`, `SEED_LP_AMOUNT` | Seed (optional) | USDC units (6 decimals) |
+| `SEED_BOND`, `SEED_LP_AMOUNT` | Seed (optional) | pool-token units (`token.decimals`, default 6) |
 | `SEPOLIA_RPC`, `BASE_SEPOLIA_RPC`, `ARB_SEPOLIA_RPC` | — | RPC URLs used below |
 
 Before step 2, confirm every external address in `config/testnet.json` against the official docs
@@ -93,6 +105,18 @@ forge script script/Seed.s.sol --rpc-url $SEPOLIA_RPC --broadcast
 forge script script/Seed.s.sol --sig "advance()" --rpc-url $SEPOLIA_RPC --broadcast
 
 # 6. smoke test (E2E script, small amounts)   7. commit deployments/testnet.json
+```
+
+DAI pool (`config/testnet-dai.json`: Sepolia hub + Base Sepolia spoke, no Arbitrum, no CCTP), same
+deployer EOA, writes `deployments/testnet-dai.json`:
+
+```bash
+export XPOOL_ENV=testnet XPOOL_CONFIG=testnet-dai
+DEPLOYER=0xYourDeployer forge script script/PredictAddresses.s.sol
+forge script script/DeployHub.s.sol   --rpc-url $SEPOLIA_RPC      --broadcast --slow
+forge script script/DeploySpoke.s.sol --rpc-url $BASE_SEPOLIA_RPC --broadcast --slow
+forge script script/VerifyDeployment.s.sol --rpc-url $SEPOLIA_RPC
+forge script script/VerifyDeployment.s.sol --rpc-url $BASE_SEPOLIA_RPC
 ```
 
 All deploy steps are idempotent (a contract already at its predicted address is skipped), so a failed
