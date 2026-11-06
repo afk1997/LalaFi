@@ -13,7 +13,7 @@
     "chainId": 11155111,
     "rpc": [
       "https://ethereum-sepolia-rpc.publicnode.com",
-      "https://sepolia.drpc.org"
+      "https://sepolia.gateway.tenderly.co"
     ],
     "usdc": "0x36e08F3A09fEf0e48261226dcA3084A1FBE20aFe",
     "cctp": {
@@ -28,8 +28,8 @@
       "chainId": 84532,
       "stack": "opstack",
       "rpc": [
-        "https://sepolia.base.org",
-        "https://base-sepolia-rpc.publicnode.com"
+        "https://base-sepolia-rpc.publicnode.com",
+        "https://base-sepolia.gateway.tenderly.co"
       ],
       "usdc": "0x60df9D37B803d93F0c0c4507F12A1328086c8EE4",
       "l1": {
