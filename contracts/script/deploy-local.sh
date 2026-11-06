@@ -12,6 +12,9 @@ BASE_RPC="${BASE_RPC:-http://127.0.0.1:8546}"
 ARB_RPC="${ARB_RPC:-http://127.0.0.1:8547}"
 SEED="${SEED:-1}"
 export XPOOL_ENV=local
+# Always the Anvil account-0 key locally: forge auto-loads contracts/.env, which may hold a real
+# testnet deployer key (it must never be used, or even funded, on local chains).
+export DEPLOYER_PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 
 CREATE2_DEPLOYER=0x4e59b44847b379578588920cA78FbF26c0B4956C
 # Runtime code of the deterministic deployment proxy (Arachnid), in case an Anvil runs without it.
