@@ -108,8 +108,8 @@
       "8453": "1000000000000",
       "42161": "1000000000000"
     },
-    "minGasL2": 300000,
-    "minGasL1": 200000,
+    "minGasL2": 1000000,
+    "minGasL1": 1500000,
     "guardian": "0x0000000000000000000000000000000000000000"
   },
   "bounds": {
@@ -132,6 +132,7 @@
     "MAINNET LAUNCH IS GATED BY PRD SECTION 16 (audits, MPC ceremony zkey, soak, legal).",
     "Every external address MUST be confirmed by verify-deployment.",
     "CCTP V2 mainnet addresses filled from memory: VERIFY.",
-    "params.guardian must be the team Safe (>=3 signers, >=1 external)."
+    "params.guardian must be the team Safe (>=3 signers, >=1 external).",
+    "minGasL1=1.5M / minGasL2=1M: sized for Amsterdam (EIP-8037) state-gas pricing; a 64-item receiveCheckpoint measured 693k gas on a Sepolia fork (was 200k/300k)."
   ]
 }

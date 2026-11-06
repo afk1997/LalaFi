@@ -28,3 +28,6 @@ circuits/ptau/
 
 # agent worktrees
 .claude/worktrees/
+
+# forge broadcast logs (keep testnet/mainnet ones out of git until reviewed)
+contracts/broadcast/

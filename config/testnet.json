@@ -84,7 +84,7 @@
       1,
       2
     ],
-    "sMin": "100000000",
+    "sMin": "5000000",
     "maxValidators": 32,
     "evictionMarginBps": 100,
     "epochSeconds": 3600,
@@ -102,15 +102,15 @@
       "84532": 3500,
       "421614": 3500
     },
-    "minRebalance": "50000000",
+    "minRebalance": "5000000",
     "tvlCap": {
       "11155111": "100000000000",
       "84532": "100000000000",
       "421614": "100000000000"
     },
-    "minGasL2": 300000,
-    "minGasL1": 200000,
-    "guardian": "0x0000000000000000000000000000000000000000"
+    "minGasL2": 1000000,
+    "minGasL1": 1500000,
+    "guardian": "0x137D61d2899ab1cf1003649C04c4549B1f5B6Db5"
   },
   "bounds": {
     "maxDepositHardMax": "10000000000",
@@ -138,6 +138,9 @@
     "Base Sepolia L1CrossDomainMessenger/OptimismPortal checked against docs.base.org/specifications/reference/base-contracts (2026-11-07).",
     "CCTP V2 testnet TokenMessengerV2/MessageTransmitterV2 checked against Circle's published testnet addresses (unified across chains).",
     "VerifyDeployment still checks every external address on-chain before any funds go in (PRD 14.6).",
-    "params.guardian must be set to the team Safe before deployment."
+    "params.guardian must be set to the team Safe before deployment.",
+    "Testnet guardian = deployer EOA 0x137D...6Db5 and sMin = 5 USDC (faucet-friendly; PRD value 100 USDC). Mainnet: team Safe + PRD values.",
+    "minGasL1=1.5M / minGasL2=1M: sized for Amsterdam (EIP-8037) state-gas pricing; a 64-item receiveCheckpoint measured 693k gas on a Sepolia fork (was 200k/300k).",
+    "minRebalance = 5 USDC on testnet (faucet-friendly; PRD value 50 USDC)."
   ]
 }
