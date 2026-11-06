@@ -44,6 +44,11 @@ export interface SyncOptions {
   view: ChainView;
   notes: NoteSink;
   pageSize?: bigint;
+  /**
+   * Block tag to sync up to. Default 'finalized' (reorg-safe). 'latest' is for testnets: a reorg can then
+   * invalidate a prepared spend (it reverts on-chain; nothing is lost) and requires a fresh sync.
+   */
+  blockTag?: 'finalized' | 'safe' | 'latest';
   onProgress?: (p: SyncProgress) => void;
   /** Called after every processed page: persist state + notes here. */
   onCheckpoint?: () => void | Promise<void>;
@@ -102,8 +107,8 @@ export function toSpokeEvent(l: { eventName: string; args: Record<string, unknow
   }
 }
 
-async function finalizedHead(pool: RpcPool): Promise<bigint> {
-  const b = await pool.run((c) => c.getBlock({ blockTag: 'finalized' }));
+async function finalizedHead(pool: RpcPool, tag: 'finalized' | 'safe' | 'latest' = 'finalized'): Promise<bigint> {
+  const b = await pool.run((c) => c.getBlock({ blockTag: tag }));
   return b.number;
 }
 
@@ -136,7 +141,7 @@ export async function syncAll(o: SyncOptions): Promise<SyncStats> {
     deployBlock: bigint,
     onPage: (page: Page<AnyLog>) => void,
   ): Promise<void> => {
-    const head = await finalizedHead(pool);
+    const head = await finalizedHead(pool, o.blockTag);
     const cursor = state.cursors[String(chainId)];
     const from = cursor !== undefined ? BigInt(cursor) + 1n : deployBlock;
     if (from > head) return;

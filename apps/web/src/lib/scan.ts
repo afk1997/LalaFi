@@ -16,7 +16,11 @@ import {
 } from '@xpool/sdk/browser';
 import { parseAbi } from 'viem';
 import { clientsOf } from './chain';
-import type { Pool } from './env';
+import { ENV_NAME, type Pool } from './env';
+
+/** Testnets may sync to 'latest' for speed (VITE_SYNC_TAG); mainnet always reads finalized blocks. */
+const SYNC_TAG: 'finalized' | 'latest' =
+  ENV_NAME !== 'mainnet' && import.meta.env.VITE_SYNC_TAG === 'latest' ? 'latest' : 'finalized';
 
 class MemoryNotes implements NoteSink {
   notes: OwnedNote[] = [];
@@ -76,6 +80,7 @@ export async function scan(pool: Pool, keys: SpendingKeys, onProgress?: (fractio
   await syncAll({
     env,
     clients,
+    blockTag: SYNC_TAG,
     keys,
     view,
     notes: sink,
@@ -87,7 +92,7 @@ export async function scan(pool: Pool, keys: SpendingKeys, onProgress?: (fractio
   });
   const notes = sink.list();
   const arriving: Arriving[] = sink.pending.map((p) => ({ chainId: p.chainId, index: p.index, amount: p.amount, finalized: true }));
-  arriving.push(...(await unfinalizedDeposits(pool, keys, arriving)));
+  if (SYNC_TAG === 'finalized') arriving.push(...(await unfinalizedDeposits(pool, keys, arriving)));
   return {
     view,
     notes,
