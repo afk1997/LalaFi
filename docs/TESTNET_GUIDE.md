@@ -3,6 +3,21 @@
 Hub: **Ethereum Sepolia** (11155111). Spokes: **Base Sepolia** (84532), **Arbitrum Sepolia** (421614).
 Addresses: [`deployments/testnet.json`](../deployments/testnet.json). Test trusted setup — **NOT FOR MAINNET**.
 
+| Contract | Chain | Address |
+|---|---|---|
+| HubCore | Sepolia | `0x060F273d2844585A1814Ba7f41ffa876d8a6048D` |
+| DepositManager | Sepolia | `0x3839e7D608e46D8563f34EA18dCde1D837727838` |
+| StakeManager | Sepolia | `0x85Af2A1d4C19A20d4FA1f6E8A35B3f7d1f1e9606` |
+| LiquidityManager (also the xLP token) | Sepolia | `0x99D206623eF7eeA147551780DfD84921c6ca6277` |
+| Groth16Verifier | Sepolia | `0x23Fd314454d38bCaedf9d484DCb2bE7eBB13A69F` |
+| PoseidonT3 / PoseidonT4 | Sepolia | `0x99231043a78c89811E5212044e3a5D5837C00D3d` / `0x3d6299090E2604E1a21dAFc5A997C9C33Eb7b3C0` |
+| OpStackHubAdapter / ArbitrumHubAdapter | Sepolia | `0xEE785956481104069c329D7249d7Da9A2a8cF6A1` / `0x4E1cD50C7539f46Ec01cf9EB1c7C5Ad3375F497a` |
+| Spoke (OpStackSpoke) | Base Sepolia | `0xD92406E70Cf210e3bcec7616973C7388Fd3944c7` |
+| Spoke (ArbitrumSpoke) | Arbitrum Sepolia | `0xB5398DD9D8Ff451dDF247B104B9e41460a6cD214` |
+
+Guardian = deployer `0x137D61d2899ab1cf1003649C04c4549B1f5B6Db5`. Verified on-chain: 91/91 (Sepolia), 26/26
+(Base Sepolia), 26/26 (Arbitrum Sepolia); deployed verifier bytecode == build from the committed zkey.
+
 Everything below runs from the repo root on your machine. Testnet gas is nearly free; USDC is the scarce
 resource (Circle faucet: **20 USDC per address per chain every 2 h**).
 
