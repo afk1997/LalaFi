@@ -1,0 +1,136 @@
+{
+  "environment": "local",
+  "hrp": "lxpool",
+  "salt": "xpool.v1.local",
+  "hub": {
+    "name": "eth-local",
+    "chainId": 31337,
+    "rpc": [
+      "http://127.0.0.1:8545"
+    ],
+    "usdc": "DEPLOYED_MOCK",
+    "cctp": {
+      "domain": 0,
+      "tokenMessengerV2": "DEPLOYED_MOCK",
+      "messageTransmitterV2": "DEPLOYED_MOCK"
+    }
+  },
+  "spokes": [
+    {
+      "name": "base",
+      "chainId": 31338,
+      "stack": "opstack",
+      "rpc": [
+        "http://127.0.0.1:8546"
+      ],
+      "usdc": "DEPLOYED_MOCK",
+      "l1": {
+        "l1CrossDomainMessenger": "DEPLOYED_MOCK",
+        "optimismPortal": "0x0000000000000000000000000000000000000000"
+      },
+      "l2": {
+        "l2CrossDomainMessenger": "DEPLOYED_MOCK"
+      },
+      "cctp": {
+        "domain": 6,
+        "tokenMessengerV2": "DEPLOYED_MOCK",
+        "messageTransmitterV2": "DEPLOYED_MOCK"
+      }
+    },
+    {
+      "name": "arbitrum",
+      "chainId": 31339,
+      "stack": "arbitrum",
+      "rpc": [
+        "http://127.0.0.1:8547"
+      ],
+      "usdc": "DEPLOYED_MOCK",
+      "l1": {
+        "inbox": "DEPLOYED_MOCK",
+        "bridge": "DEPLOYED_MOCK",
+        "outbox": "DEPLOYED_MOCK"
+      },
+      "cctp": {
+        "domain": 3,
+        "tokenMessengerV2": "DEPLOYED_MOCK",
+        "messageTransmitterV2": "DEPLOYED_MOCK"
+      }
+    }
+  ],
+  "params": {
+    "phiBps": 10,
+    "relayerFeeBucket": "10000",
+    "minDeposit": "1000000",
+    "maxDeposit": "1000000000",
+    "maxFastDeposit": "10000000000",
+    "minWithdraw": "1000000",
+    "settleFee": {
+      "insert": "0",
+      "final": "0"
+    },
+    "k": [
+      3,
+      2
+    ],
+    "theta": [
+      2,
+      3
+    ],
+    "omegaBps": 1000,
+    "beta": [
+      1,
+      2
+    ],
+    "sMin": "100000000",
+    "maxValidators": 32,
+    "evictionMarginBps": 100,
+    "epochSeconds": 120,
+    "unbondSeconds": 600,
+    "maxBatch": 32,
+    "maxCheckpoint": 64,
+    "minEmptyCheckpointInterval": 5,
+    "feeSplitBps": {
+      "validators": 3000,
+      "lps": 6000,
+      "insurance": 1000
+    },
+    "targetBps": {
+      "31337": 3000,
+      "31338": 3500,
+      "31339": 3500
+    },
+    "minRebalance": "50000000",
+    "tvlCap": {
+      "31337": "100000000000000",
+      "31338": "100000000000000",
+      "31339": "100000000000000"
+    },
+    "minGasL2": 300000,
+    "minGasL1": 200000,
+    "guardian": "0x0000000000000000000000000000000000000000"
+  },
+  "bounds": {
+    "maxDepositHardMax": "100000000000000",
+    "maxFastDepositHardMax": "100000000000000",
+    "tvlCapHardMax": "1000000000000000",
+    "betaMax": [
+      1,
+      1
+    ],
+    "targetBpsMin": 1000,
+    "targetBpsMax": 6000
+  },
+  "artifacts": {
+    "wasm": "sha256:TBD",
+    "zkey": "sha256:TBD",
+    "vkey": "sha256:TBD"
+  },
+  "_notes": [
+    "DEPLOYED_MOCK values are filled from deployments/local.json by the local deploy script."
+  ],
+  "mocks": {
+    "l1ToL2DelaySeconds": 5,
+    "l2ToL1DelaySeconds": 60,
+    "cctpDelaySeconds": 10
+  }
+}

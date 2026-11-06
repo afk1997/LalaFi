@@ -1,0 +1,137 @@
+{
+  "environment": "mainnet",
+  "hrp": "xpool",
+  "salt": "xpool.v1.mainnet",
+  "hub": {
+    "name": "ethereum",
+    "chainId": 1,
+    "rpc": [
+      "https://ethereum-rpc.publicnode.com",
+      "https://eth.drpc.org"
+    ],
+    "usdc": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "cctp": {
+      "domain": 0,
+      "tokenMessengerV2": "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
+      "messageTransmitterV2": "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64"
+    }
+  },
+  "spokes": [
+    {
+      "name": "base",
+      "chainId": 8453,
+      "stack": "opstack",
+      "rpc": [
+        "https://mainnet.base.org",
+        "https://base-rpc.publicnode.com"
+      ],
+      "usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "l1": {
+        "l1CrossDomainMessenger": "0x866E82a600A1414e583f7F13623F1aC5d58b0Afa",
+        "optimismPortal": "0x49048044D57e1C92A77f79988d21Fa8fAF74E97e"
+      },
+      "l2": {
+        "l2CrossDomainMessenger": "0x4200000000000000000000000000000000000007"
+      },
+      "cctp": {
+        "domain": 6,
+        "tokenMessengerV2": "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
+        "messageTransmitterV2": "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64"
+      }
+    },
+    {
+      "name": "arbitrum",
+      "chainId": 42161,
+      "stack": "arbitrum",
+      "rpc": [
+        "https://arb1.arbitrum.io/rpc",
+        "https://arbitrum-one-rpc.publicnode.com"
+      ],
+      "usdc": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "l1": {
+        "inbox": "0x4Dbd4fc535Ac27206064B68FfCf827b0A60BAB3f",
+        "bridge": "0x8315177aB297bA92A06054cE80a67Ed4DBd7ed3a",
+        "outbox": "0x0B9857ae2D4A3DBe74ffE1d7DF045bb7F96E4840"
+      },
+      "cctp": {
+        "domain": 3,
+        "tokenMessengerV2": "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
+        "messageTransmitterV2": "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64"
+      }
+    }
+  ],
+  "params": {
+    "phiBps": 10,
+    "relayerFeeBucket": "250000",
+    "minDeposit": "1000000",
+    "maxDeposit": "10000000000",
+    "maxFastDeposit": "10000000000",
+    "minWithdraw": "1000000",
+    "settleFee": {
+      "insert": "750000",
+      "final": "250000"
+    },
+    "k": [
+      3,
+      2
+    ],
+    "theta": [
+      2,
+      3
+    ],
+    "omegaBps": 1000,
+    "beta": [
+      1,
+      2
+    ],
+    "sMin": "10000000000",
+    "maxValidators": 32,
+    "evictionMarginBps": 100,
+    "epochSeconds": 86400,
+    "unbondSeconds": 1209600,
+    "maxBatch": 32,
+    "maxCheckpoint": 64,
+    "minEmptyCheckpointInterval": 300,
+    "feeSplitBps": {
+      "validators": 3000,
+      "lps": 6000,
+      "insurance": 1000
+    },
+    "targetBps": {
+      "1": 3000,
+      "8453": 3500,
+      "42161": 3500
+    },
+    "minRebalance": "50000000",
+    "tvlCap": {
+      "1": "1000000000000",
+      "8453": "1000000000000",
+      "42161": "1000000000000"
+    },
+    "minGasL2": 300000,
+    "minGasL1": 200000,
+    "guardian": "0x0000000000000000000000000000000000000000"
+  },
+  "bounds": {
+    "maxDepositHardMax": "100000000000",
+    "maxFastDepositHardMax": "100000000000",
+    "tvlCapHardMax": "100000000000000",
+    "betaMax": [
+      1,
+      1
+    ],
+    "targetBpsMin": 1000,
+    "targetBpsMax": 6000
+  },
+  "artifacts": {
+    "wasm": "sha256:TBD",
+    "zkey": "sha256:TBD",
+    "vkey": "sha256:TBD"
+  },
+  "_notes": [
+    "MAINNET LAUNCH IS GATED BY PRD SECTION 16 (audits, MPC ceremony zkey, soak, legal).",
+    "Every external address MUST be confirmed by verify-deployment.",
+    "CCTP V2 mainnet addresses filled from memory: VERIFY.",
+    "params.guardian must be the team Safe (>=3 signers, >=1 external)."
+  ]
+}
