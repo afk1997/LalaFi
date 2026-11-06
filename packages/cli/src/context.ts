@@ -20,7 +20,7 @@ export interface GlobalOptions {
   circuitsDir?: string;
 }
 
-const DEFAULT_LOCAL_RELAYER = 'http://127.0.0.1:8090';
+const DEFAULT_LOCAL_RELAYER = 'http://127.0.0.1:8080'; // services/relayer RELAYER_PORT
 
 export class Ctx {
   readonly envName: Env;

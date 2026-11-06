@@ -90,7 +90,12 @@ export class Wallet {
     if (store.data.version !== 1) throw new CliError('unsupported wallet version');
     const seed = mnemonicToSeed(store.data.mnemonic, store.data.passphrase);
     const notes = NoteStore.open(dir, password);
-    const chain = EncryptedStore.open<SyncState>(join(dir, CHAIN_FILE), password);
+    // chain.vault is only a cache of public chain data: if it is missing, start a fresh sync
+    // (the wallet must be rebuildable from the mnemonic alone, PRD 5.8).
+    const chainPath = join(dir, CHAIN_FILE);
+    const chain = existsSync(chainPath)
+      ? EncryptedStore.open<SyncState>(chainPath, password)
+      : EncryptedStore.create<SyncState>(chainPath, password, emptySyncState());
     return new Wallet(dir, store, notes, chain, seed, deriveKeys(seed, store.data.account));
   }
 
