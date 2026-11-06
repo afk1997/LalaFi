@@ -114,6 +114,7 @@ export class SyncProcessor {
   /** Process all hub events of ONE transaction (nullifiers first, then outputs). */
   processHubTx(events: HubEvent[], meta: EventMeta): void {
     const spentHere: OwnedNote[] = [];
+    this.txRanges = [];
     for (const e of events) {
       if (e.type !== 'NewNullifier') continue;
       checkField(e.nullifier, 'nullifier');
@@ -163,7 +164,20 @@ export class SyncProcessor {
           break;
       }
     }
+    // HubCore pads odd deposit batches with Z0 and LeavesInserted.count INCLUDES that padding.
+    // Every real leaf of the range is announced by an event in this same tx, so a slot that is
+    // still empty after the whole tx is the padding leaf (only ever the last one).
+    for (const { first, count } of this.txRanges) {
+      const last = first + count - 1;
+      if (last >= this.view.tree.size && this.state.pendingLeaves[String(last)] === undefined) {
+        this.setLeaf(last, zeroHashes()[0]!);
+      }
+    }
+    this.txRanges = [];
   }
+
+  /** LeavesInserted ranges seen in the tx being processed. */
+  private txRanges: { first: number; count: number }[] = [];
 
   private onNewCommitment(e: Extract<HubEvent, { type: 'NewCommitment' }>, meta: EventMeta, spentHere: OwnedNote[]): void {
     this.setLeaf(e.leafIndex, e.commitment);
@@ -193,8 +207,9 @@ export class SyncProcessor {
     checkField(e.newRoot, 'root');
     if (e.count <= 0n || e.count > BigInt(MAX_LEAVES)) throw new SyncError('bad LeavesInserted count');
     const n = Number(e.count);
-    const end = e.firstLeafIndex + n + (n % 2);
-    if (n % 2 === 1) this.setLeaf(e.firstLeafIndex + n, zeroHashes()[0]!);
+    if (n % 2 === 1) throw new SyncError('LeavesInserted count must be even (it includes Z0 padding)');
+    const end = e.firstLeafIndex + n;
+    this.txRanges.push({ first: e.firstLeafIndex, count: n });
     if (end <= this.view.tree.size) {
       // Already applied: we can only check if it is the current root.
       if (end === this.view.tree.size && this.view.tree.root() !== e.newRoot) throw new SyncError('root mismatch');

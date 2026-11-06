@@ -37,7 +37,7 @@ describe('SyncProcessor', () => {
     proc.processHubTx(
       [
         { type: 'L1Deposit', leafIndex: 0, commitment: C, amount: mine.amount, depositor: '0x01', encNote: enc },
-        { type: 'LeavesInserted', firstLeafIndex: 0, count: 1n, newRoot: ref.root() },
+        { type: 'LeavesInserted', firstLeafIndex: 0, count: 2n, newRoot: ref.root() },
       ],
       meta(1, 500),
     );
@@ -66,7 +66,7 @@ describe('SyncProcessor', () => {
       proc.processHubTx(
         [
           { type: 'L1Deposit', leafIndex: 0, commitment: 7n, amount: 1n, depositor: '0x', encNote: new Uint8Array() },
-          { type: 'LeavesInserted', firstLeafIndex: 0, count: 1n, newRoot: 123n },
+          { type: 'LeavesInserted', firstLeafIndex: 0, count: 2n, newRoot: 123n },
         ],
         meta(1),
       ),
