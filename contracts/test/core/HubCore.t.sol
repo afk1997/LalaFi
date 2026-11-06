@@ -499,14 +499,10 @@ contract HubCoreTest is CoreBase {
         PublicInputs memory pi2 = _pi(e2);
         pi2.inputNullifiers[0] = pi.inputNullifiers[1];
         pi2.extDataHash = 0; // later check also fails
-        _expectTransactRevert(
-            e2, pi2, abi.encodeWithSelector(IHubCore.NullifierSpent.selector, pi.inputNullifiers[1])
-        );
+        _expectTransactRevert(e2, pi2, abi.encodeWithSelector(IHubCore.NullifierSpent.selector, pi.inputNullifiers[1]));
         pi2 = _pi(e2);
         pi2.inputNullifiers[1] = pi.inputNullifiers[0];
-        _expectTransactRevert(
-            e2, pi2, abi.encodeWithSelector(IHubCore.NullifierSpent.selector, pi.inputNullifiers[0])
-        );
+        _expectTransactRevert(e2, pi2, abi.encodeWithSelector(IHubCore.NullifierSpent.selector, pi.inputNullifiers[0]));
     }
 
     function test_check8_badExtDataHash() public {
@@ -527,9 +523,7 @@ contract HubCoreTest is CoreBase {
 
     function test_check10_insufficientLiquidity() public {
         ExtData memory e = _ext(BASE, bob, 1_000e6 + 1, 0);
-        _expectTransactRevert(
-            e, _pi(e), abi.encodeWithSelector(ILiquidityManager.InsufficientLiquidity.selector, BASE)
-        );
+        _expectTransactRevert(e, _pi(e), abi.encodeWithSelector(ILiquidityManager.InsufficientLiquidity.selector, BASE));
     }
 
     function test_unexpectedValue() public {

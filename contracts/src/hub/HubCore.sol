@@ -74,8 +74,8 @@ contract HubCore is IHubCore, MerkleTreeWithHistory, ReentrancyGuardTransient {
                 || c.guardian == address(0) || c.baseAdapter == address(0) || c.arbAdapter == address(0)
         ) revert BadConfig();
         if (
-            c.baseChainId == 0 || c.arbChainId == 0 || c.baseChainId == c.arbChainId
-                || c.baseChainId == block.chainid || c.arbChainId == block.chainid
+            c.baseChainId == 0 || c.arbChainId == 0 || c.baseChainId == c.arbChainId || c.baseChainId == block.chainid
+                || c.arbChainId == block.chainid
         ) revert BadConfig();
         if (c.phiBps > _MAX_PHI_BPS || c.relayerFeeBucket == 0) revert BadConfig();
         if (c.minWithdrawEth == 0 || c.minWithdrawBase == 0 || c.minWithdrawArb == 0) revert BadConfig();
@@ -319,10 +319,9 @@ contract HubCore is IHubCore, MerkleTreeWithHistory, ReentrancyGuardTransient {
         uint256 n1 = pi.inputNullifiers[1];
         uint256 c0 = pi.outputCommitments[0];
         uint256 c1 = pi.outputCommitments[1];
-        if (
-            pi.root >= P || pi.publicAmount >= P || pi.extDataHash >= P || n0 >= P || n1 >= P || c0 >= P
-                || c1 >= P
-        ) revert FieldOverflow();
+        if (pi.root >= P || pi.publicAmount >= P || pi.extDataHash >= P || n0 >= P || n1 >= P || c0 >= P || c1 >= P) {
+            revert FieldOverflow();
+        }
 
         // 7. nullifiers
         if (n0 == n1) revert DuplicateNullifier();

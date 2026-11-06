@@ -87,8 +87,8 @@ contract LiquidityManager is ILiquidityManager, ERC20, ReentrancyGuardTransient 
                 || c.baseSpoke == address(0) || c.arbAdapter == address(0) || c.arbSpoke == address(0)
         ) revert BadConfig();
         if (
-            c.baseChainId == 0 || c.arbChainId == 0 || c.baseChainId == c.arbChainId
-                || c.baseChainId == block.chainid || c.arbChainId == block.chainid
+            c.baseChainId == 0 || c.arbChainId == 0 || c.baseChainId == c.arbChainId || c.baseChainId == block.chainid
+                || c.arbChainId == block.chainid
         ) revert BadConfig();
         if (c.ethDomain == c.baseDomain || c.ethDomain == c.arbDomain || c.baseDomain == c.arbDomain) {
             revert BadConfig();

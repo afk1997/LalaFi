@@ -136,7 +136,11 @@ contract CoreMockAdapter {
         return _sent.length;
     }
 
-    function sent(uint256 i) external view returns (bytes memory message, uint256 value, BridgeParams memory bp, address caller) {
+    function sent(uint256 i)
+        external
+        view
+        returns (bytes memory message, uint256 value, BridgeParams memory bp, address caller)
+    {
         Sent storage s = _sent[i];
         return (s.message, s.value, s.bp, s.caller);
     }

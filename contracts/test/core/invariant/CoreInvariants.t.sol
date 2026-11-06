@@ -175,6 +175,8 @@ contract CoreInvariants is CoreBase {
 
     function invariant_callSummary() public view {
         // keeps the campaign honest: spends must actually succeed
-        if (handler.calls("transact") > 20 && handler.pauses() == 0) assertGt(handler.calls("transact.ok"), 0, "no spend ever succeeded");
+        if (handler.calls("transact") > 20 && handler.pauses() == 0) {
+            assertGt(handler.calls("transact.ok"), 0, "no spend ever succeeded");
+        }
     }
 }

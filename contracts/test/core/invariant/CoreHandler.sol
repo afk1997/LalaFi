@@ -68,6 +68,7 @@ contract CoreHandler is Test {
     // Spoke queue (Q_c): releases and rebalance burns reserved on the hub but not yet executed
     // because the spoke vault is waiting for an in-flight CCTP mint.
     mapping(uint64 => uint256) public queuedReleases;
+
     struct PendingBurn {
         uint64 dst;
         uint256 amount;
