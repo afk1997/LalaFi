@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   KvStore,
+  Metrics,
   ReleaseState,
   applyL1ToL2Alias,
   createLogger,
@@ -101,5 +102,15 @@ describe('releaseAction', () => {
     expect(releaseAction(t, ReleaseState.None, 1500, 1000, 3)).toBe('wait');
     expect(releaseAction(t, ReleaseState.None, 2000, 1000, 3)).toBe('resend');
     expect(releaseAction({ ...t, resends: 3 }, ReleaseState.None, 9000, 1000, 3)).toBe('stuck');
+  });
+});
+
+describe('Metrics', () => {
+  it('get-or-create: the same name returns the same metric (per-chain components)', async () => {
+    const m = new Metrics('t');
+    const a = m.counter('x_total', 'x', ['chain']);
+    expect(m.counter('x_total', 'x', ['chain'])).toBe(a);
+    a.inc({ chain: '1' });
+    expect(await m.registry.getSingleMetricAsString('xpool_x_total')).toContain('chain="1"');
   });
 });

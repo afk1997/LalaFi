@@ -14,22 +14,24 @@ export class Metrics {
     collectDefaultMetrics({ register: this.registry, prefix: 'xpool_' });
   }
 
+  /** Get-or-create, so per-chain component instances share one labelled metric. */
+  private reuse<T>(name: string, create: () => T): T {
+    return (this.registry.getSingleMetric(`xpool_${name}`) as T | undefined) ?? create();
+  }
+
   counter(name: string, help: string, labelNames: string[] = []): Counter<string> {
-    return new Counter({ name: `xpool_${name}`, help, labelNames, registers: [this.registry] });
+    return this.reuse(name, () => new Counter({ name: `xpool_${name}`, help, labelNames, registers: [this.registry] }));
   }
 
   gauge(name: string, help: string, labelNames: string[] = []): Gauge<string> {
-    return new Gauge({ name: `xpool_${name}`, help, labelNames, registers: [this.registry] });
+    return this.reuse(name, () => new Gauge({ name: `xpool_${name}`, help, labelNames, registers: [this.registry] }));
   }
 
   histogram(name: string, help: string, labelNames: string[] = [], buckets?: number[]): Histogram<string> {
-    return new Histogram({
-      name: `xpool_${name}`,
-      help,
-      labelNames,
-      registers: [this.registry],
-      ...(buckets ? { buckets } : {}),
-    });
+    return this.reuse(
+      name,
+      () => new Histogram({ name: `xpool_${name}`, help, labelNames, registers: [this.registry], ...(buckets ? { buckets } : {}) }),
+    );
   }
 }
 
