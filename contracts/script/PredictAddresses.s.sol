@@ -4,8 +4,8 @@ pragma solidity 0.8.28;
 import {console} from "forge-std/Script.sol";
 import {XpoolBase} from "./base/XpoolBase.s.sol";
 
-/// @notice PRD 14.5 step 1. Prints every CREATE3 address for XPOOL_ENV and writes
-///         deployments/<env>.predicted.json. No RPC and no broadcast needed.
+/// @notice PRD 14.5 step 1. Prints every CREATE3 address for XPOOL_CONFIG (default XPOOL_ENV) and writes
+///         deployments/<XPOOL_CONFIG>.predicted.json. No RPC and no broadcast needed.
 ///
 ///   XPOOL_ENV=testnet DEPLOYER=0xYourDeployerEOA forge script script/PredictAddresses.s.sol
 ///   (DEPLOYER defaults to the address of DEPLOYER_PRIVATE_KEY; locally to Anvil account 0)
@@ -16,6 +16,7 @@ contract PredictAddresses is XpoolBase {
         if (deployer == address(0)) deployer = vm.addr(_deployerKey());
         Addrs memory a = _predictAll(deployer);
         console.log("env      ", env);
+        console.log("config   ", configName);
         console.log("salt     ", salt);
         console.log("deployer ", deployer);
         _logAddrs(a);
@@ -32,9 +33,11 @@ contract PredictAddresses is XpoolBase {
         vm.serializeAddress(o, N_DEPOSIT, a.depositManager);
         vm.serializeAddress(o, N_HUB, a.hubCore);
         vm.serializeAddress(o, N_OP_ADAPTER, a.opAdapter);
-        vm.serializeAddress(o, N_ARB_ADAPTER, a.arbAdapter);
-        vm.serializeAddress(o, N_BASE_SPOKE, a.baseSpoke);
-        string memory out = vm.serializeAddress(o, N_ARB_SPOKE, a.arbSpoke);
-        vm.writeJson(out, string.concat(vm.projectRoot(), "/../deployments/", env, ".predicted.json"));
+        string memory out = vm.serializeAddress(o, N_BASE_SPOKE, a.baseSpoke);
+        if (hasArb) {
+            vm.serializeAddress(o, N_ARB_ADAPTER, a.arbAdapter);
+            out = vm.serializeAddress(o, N_ARB_SPOKE, a.arbSpoke);
+        }
+        vm.writeJson(out, string.concat(vm.projectRoot(), "/../deployments/", configName, ".predicted.json"));
     }
 }

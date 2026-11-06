@@ -6,16 +6,20 @@ import {XpoolBase} from "./base/XpoolBase.s.sol";
 
 /// @notice PRD 14.5 step 3, on Base (OpStackSpoke) or Arbitrum (ArbitrumSpoke). The stack is chosen by
 ///         block.chainid. Uses the SAME deployer key as DeployHub, so the hub adapters' immutable `spoke`
-///         equals the address deployed here. Updates deployments/<env>.json -> spokes.<chainId>.
+///         equals the address deployed here. Updates deployments/<XPOOL_CONFIG>.json -> spokes.<chainId>.
 ///
 ///   XPOOL_ENV=testnet DEPLOYER_PRIVATE_KEY=0x... forge script script/DeploySpoke.s.sol --rpc-url $BASE_SEPOLIA_RPC --broadcast
 ///   XPOOL_ENV=testnet DEPLOYER_PRIVATE_KEY=0x... forge script script/DeploySpoke.s.sol --rpc-url $ARB_SEPOLIA_RPC --broadcast
+///   (XPOOL_CONFIG=testnet-dai for the DAI pool: Base only, refuses an Arbitrum spoke)
 contract DeploySpoke is XpoolBase {
     function run() external {
         _load();
         require(!_isLocal(), "local: use script/deploy-local.sh (DeployLocal.s.sol)");
         bool isBase = block.chainid == baseChainId;
-        require(isBase || block.chainid == arbChainId, "not a configured spoke chain");
+        if (!isBase) {
+            require(hasArb, string.concat("config/", configName, ".json has no Arbitrum spoke: only Base is deployed"));
+            require(block.chainid == arbChainId, "not a configured spoke chain");
+        }
         uint256 pk = _deployerKey();
         address deployer = vm.addr(pk);
         Addrs memory a = _predictAll(deployer);

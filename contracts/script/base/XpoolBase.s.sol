@@ -20,7 +20,13 @@ import {
 } from "../../src/libraries/DeployConfig.sol";
 
 /// @title Shared plumbing for every xpool deploy script.
-/// @notice - env:     XPOOL_ENV = local | testnet | mainnet (default local); reads config/<env>.json
+/// @notice - env:     XPOOL_ENV = local | testnet | mainnet (default local); XPOOL_CONFIG = config file stem
+///                    (default XPOOL_ENV), e.g. testnet-dai. Reads config/<XPOOL_CONFIG>.json and writes
+///                    deployments/<XPOOL_CONFIG>.json; the environment kind (local / testnet / mainnet)
+///                    is the config's "environment" field and must equal XPOOL_ENV when that is set.
+///         - pool:    one pool per token. The Arbitrum spoke is optional (no "arbitrum" spoke in the
+///                    config -> arbChainId = 0, no ArbitrumHubAdapter); zero CCTP addresses disable
+///                    rebalancing (tokens CCTP can't move, e.g. DAI).
 ///         - key:     DEPLOYER_PRIVATE_KEY (local default: Anvil mnemonic account 0)
 ///         - salts:   keccak256("<config.salt>/<ContractName>"), namespaced by the deployer inside
 ///                    Create3Factory, so addresses = f(factory, deployer, salt) on every chain.
@@ -78,40 +84,70 @@ abstract contract XpoolBase is Script {
         address arbMessageTransmitter;
     }
 
+    /// @dev Environment kind from the config: local | testnet | mainnet.
     string internal env;
+    /// @dev Config file stem (XPOOL_CONFIG, default XPOOL_ENV): config/<configName>.json, deployments/<configName>.json.
+    string internal configName;
     string internal cfg;
     string internal salt;
     uint256 internal baseIdx;
     uint256 internal arbIdx;
     uint64 internal hubChainId;
     uint64 internal baseChainId;
-    uint64 internal arbChainId;
+    uint64 internal arbChainId; // 0 when the config has no Arbitrum spoke
+    bool internal hasArb;
 
     // ================================================================== loading
     function _load() internal {
-        env = vm.envOr("XPOOL_ENV", string("local"));
-        cfg = vm.readFile(string.concat(vm.projectRoot(), "/../config/", env, ".json"));
+        string memory envVar = vm.envOr("XPOOL_ENV", string(""));
+        configName = vm.envOr("XPOOL_CONFIG", bytes(envVar).length == 0 ? string("local") : envVar);
+        cfg = vm.readFile(string.concat(vm.projectRoot(), "/../config/", configName, ".json"));
+        env = vm.parseJsonString(cfg, ".environment");
+        require(
+            _eq(env, "local") || _eq(env, "testnet") || _eq(env, "mainnet"),
+            "config: environment must be local | testnet | mainnet"
+        );
+        require(
+            bytes(envVar).length == 0 || _eq(envVar, env),
+            string.concat("XPOOL_ENV=", envVar, " but config/", configName, ".json is environment ", env)
+        );
         salt = vm.parseJsonString(cfg, ".salt");
         hubChainId = uint64(vm.parseJsonUint(cfg, ".hub.chainId"));
         bool foundBase;
-        bool foundArb;
-        for (uint256 i; i < 2; ++i) {
-            string memory stack = vm.parseJsonString(cfg, string.concat(".spokes[", vm.toString(i), "].stack"));
-            if (keccak256(bytes(stack)) == keccak256("opstack")) {
+        for (uint256 i; vm.keyExistsJson(cfg, string.concat(".spokes[", vm.toString(i), "]")); ++i) {
+            string memory stack = vm.parseJsonString(cfg, _sp(i, ".stack"));
+            if (_eq(stack, "opstack")) {
+                require(!foundBase, "config: more than one opstack spoke");
                 baseIdx = i;
                 foundBase = true;
-            } else if (keccak256(bytes(stack)) == keccak256("arbitrum")) {
+            } else if (_eq(stack, "arbitrum")) {
+                require(!hasArb, "config: more than one arbitrum spoke");
                 arbIdx = i;
-                foundArb = true;
+                hasArb = true;
+            } else {
+                revert(string.concat("config: unknown spoke stack ", stack));
             }
         }
-        require(foundBase && foundArb, "config: need one opstack and one arbitrum spoke");
+        require(foundBase, "config: need one opstack spoke");
         baseChainId = uint64(vm.parseJsonUint(cfg, _sp(baseIdx, ".chainId")));
-        arbChainId = uint64(vm.parseJsonUint(cfg, _sp(arbIdx, ".chainId")));
+        if (hasArb) arbChainId = uint64(vm.parseJsonUint(cfg, _sp(arbIdx, ".chainId")));
+    }
+
+    function _eq(string memory a, string memory b) internal pure returns (bool) {
+        return keccak256(bytes(a)) == keccak256(bytes(b));
+    }
+
+    /// @dev Pool token symbol / decimals from config `token` (default USDC / 6).
+    function _tokenSymbol() internal view returns (string memory) {
+        return vm.keyExistsJson(cfg, ".token.symbol") ? vm.parseJsonString(cfg, ".token.symbol") : "USDC";
+    }
+
+    function _tokenDecimals() internal view returns (uint8) {
+        return vm.keyExistsJson(cfg, ".token.decimals") ? uint8(vm.parseJsonUint(cfg, ".token.decimals")) : 6;
     }
 
     function _isLocal() internal view returns (bool) {
-        return keccak256(bytes(env)) == keccak256("local");
+        return _eq(env, "local");
     }
 
     function _deployerKey() internal view returns (uint256) {
@@ -155,6 +191,7 @@ abstract contract XpoolBase is Script {
         x.baseL2Messenger = _addr(_sp(baseIdx, ".l2.l2CrossDomainMessenger"));
         x.baseTokenMessenger = _addr(_sp(baseIdx, ".cctp.tokenMessengerV2"));
         x.baseMessageTransmitter = _addr(_sp(baseIdx, ".cctp.messageTransmitterV2"));
+        if (!hasArb) return x;
         x.arbUsdc = _addr(_sp(arbIdx, ".usdc"));
         x.arbInbox = _addr(_sp(arbIdx, ".l1.inbox"));
         x.arbBridge = _addr(_sp(arbIdx, ".l1.bridge"));
@@ -196,9 +233,11 @@ abstract contract XpoolBase is Script {
         a.depositManager = _predict(deployer, N_DEPOSIT);
         a.hubCore = _predict(deployer, N_HUB);
         a.opAdapter = _predict(deployer, N_OP_ADAPTER);
-        a.arbAdapter = _predict(deployer, N_ARB_ADAPTER);
         a.baseSpoke = _predict(deployer, N_BASE_SPOKE);
-        a.arbSpoke = _predict(deployer, N_ARB_SPOKE);
+        if (hasArb) {
+            a.arbAdapter = _predict(deployer, N_ARB_ADAPTER);
+            a.arbSpoke = _predict(deployer, N_ARB_SPOKE);
+        }
     }
 
     // ================================================================== deployment primitives (inside a broadcast)
@@ -244,7 +283,7 @@ abstract contract XpoolBase is Script {
         c.relayerFeeBucket = _u(".params.relayerFeeBucket");
         c.minWithdrawEth = _u(".params.minWithdraw");
         c.minWithdrawBase = _u(".params.minWithdraw");
-        c.minWithdrawArb = _u(".params.minWithdraw");
+        c.minWithdrawArb = hasArb ? _u(".params.minWithdraw") : 0;
     }
 
     function _depositManagerCfg(Addrs memory a, External memory x) internal view returns (DepositManagerConfig memory c) {
@@ -261,8 +300,10 @@ abstract contract XpoolBase is Script {
         c.arbSpoke = a.arbSpoke;
         c.baseSettleInsert = _u(".params.settleFee.insert");
         c.baseSettleFinal = _u(".params.settleFee.final");
-        c.arbSettleInsert = _u(".params.settleFee.insert");
-        c.arbSettleFinal = _u(".params.settleFee.final");
+        if (hasArb) {
+            c.arbSettleInsert = _u(".params.settleFee.insert");
+            c.arbSettleFinal = _u(".params.settleFee.final");
+        }
         c.minDeposit = _u(".params.minDeposit");
         c.maxDeposit = _u(".params.maxDeposit");
         c.maxFastDeposit = _u(".params.maxFastDeposit");
@@ -311,13 +352,13 @@ abstract contract XpoolBase is Script {
         c.arbChainId = arbChainId;
         c.arbAdapter = a.arbAdapter;
         c.arbSpoke = a.arbSpoke;
-        c.arbDomain = uint32(_u(_sp(arbIdx, ".cctp.domain")));
+        if (hasArb) c.arbDomain = uint32(_u(_sp(arbIdx, ".cctp.domain")));
         c.alphaVBps = _u(".params.feeSplitBps.validators");
         c.alphaLPBps = _u(".params.feeSplitBps.lps");
         c.alphaInsBps = _u(".params.feeSplitBps.insurance");
         c.targetEthBps = _perChain(".params.targetBps", hubChainId);
         c.targetBaseBps = _perChain(".params.targetBps", baseChainId);
-        c.targetArbBps = _perChain(".params.targetBps", arbChainId);
+        if (hasArb) c.targetArbBps = _perChain(".params.targetBps", arbChainId);
         c.targetBpsMin = _u(".bounds.targetBpsMin");
         c.targetBpsMax = _u(".bounds.targetBpsMax");
         c.minRebalance = _u(".params.minRebalance");
@@ -394,11 +435,13 @@ abstract contract XpoolBase is Script {
             N_OP_ADAPTER,
             abi.encodePacked(_code("OpStackHubAdapter.sol:OpStackHubAdapter"), abi.encode(_opAdapterCfg(a, x)))
         );
-        _deploy3(
-            deployer,
-            N_ARB_ADAPTER,
-            abi.encodePacked(_code("ArbitrumHubAdapter.sol:ArbitrumHubAdapter"), abi.encode(_arbAdapterCfg(a, x)))
-        );
+        if (hasArb) {
+            _deploy3(
+                deployer,
+                N_ARB_ADAPTER,
+                abi.encodePacked(_code("ArbitrumHubAdapter.sol:ArbitrumHubAdapter"), abi.encode(_arbAdapterCfg(a, x)))
+            );
+        }
     }
 
     /// @dev The spoke of the current chain. Caller must be broadcasting as `deployer`.
@@ -406,6 +449,7 @@ abstract contract XpoolBase is Script {
         internal
         returns (address s)
     {
+        require(isBase || hasArb, "config has no Arbitrum spoke");
         require(block.chainid == (isBase ? baseChainId : arbChainId), "wrong chain for this spoke");
         _ensureFactory();
         if (isBase) {
@@ -427,7 +471,7 @@ abstract contract XpoolBase is Script {
 
     // ================================================================== deployments/<env>.json
     function _deploymentsPath() internal view returns (string memory) {
-        return string.concat(vm.projectRoot(), "/../deployments/", env, ".json");
+        return string.concat(vm.projectRoot(), "/../deployments/", configName, ".json");
     }
 
     function _spokeJson(string memory name, string memory stack, uint256 deployBlock, address usdc_, address spoke)
@@ -452,8 +496,8 @@ abstract contract XpoolBase is Script {
         vm.serializeAddress(c, N_VERIFIER, a.verifier);
         vm.serializeAddress(c, N_POSEIDON_T3, a.poseidonT3);
         vm.serializeAddress(c, N_POSEIDON_T4, a.poseidonT4);
-        vm.serializeAddress(c, N_OP_ADAPTER, a.opAdapter);
-        string memory contracts_ = vm.serializeAddress(c, N_ARB_ADAPTER, a.arbAdapter);
+        string memory contracts_ = vm.serializeAddress(c, N_OP_ADAPTER, a.opAdapter);
+        if (hasArb) contracts_ = vm.serializeAddress(c, N_ARB_ADAPTER, a.arbAdapter);
         vm.serializeUint("hub", "chainId", hubChainId);
         vm.serializeUint("hub", "deployBlock", deployBlock);
         vm.serializeAddress("hub", "usdc", usdc_);
@@ -465,18 +509,22 @@ abstract contract XpoolBase is Script {
     ///      when the file doesn't exist yet.
     function _writeSkeleton(address deployer, Addrs memory a, External memory x) internal {
         string memory spokes = "spokes";
-        vm.serializeString(
+        string memory spokesJson = vm.serializeString(
             spokes,
             vm.toString(uint256(baseChainId)),
             _spokeJson(vm.parseJsonString(cfg, _sp(baseIdx, ".name")), "opstack", 0, x.baseUsdc, a.baseSpoke)
         );
-        string memory spokesJson = vm.serializeString(
-            spokes,
-            vm.toString(uint256(arbChainId)),
-            _spokeJson(vm.parseJsonString(cfg, _sp(arbIdx, ".name")), "arbitrum", 0, x.arbUsdc, a.arbSpoke)
-        );
+        if (hasArb) {
+            spokesJson = vm.serializeString(
+                spokes,
+                vm.toString(uint256(arbChainId)),
+                _spokeJson(vm.parseJsonString(cfg, _sp(arbIdx, ".name")), "arbitrum", 0, x.arbUsdc, a.arbSpoke)
+            );
+        }
         string memory root = "root";
         vm.serializeString(root, "environment", env);
+        if (vm.keyExistsJson(cfg, ".pool")) vm.serializeString(root, "pool", vm.parseJsonString(cfg, ".pool"));
+        if (vm.keyExistsJson(cfg, ".token")) vm.serializeString(root, "token", _tokenJson());
         vm.serializeAddress(root, "deployer", deployer);
         vm.serializeAddress(root, "create3Factory", a.factory);
         vm.serializeString(root, "hub", _hubJson(a, 0, x.hubUsdc));
@@ -484,11 +532,19 @@ abstract contract XpoolBase is Script {
         if (_isLocal()) {
             string memory m = "mocks";
             vm.serializeString(m, vm.toString(uint256(hubChainId)), "{}");
-            vm.serializeString(m, vm.toString(uint256(baseChainId)), "{}");
-            string memory mocks = vm.serializeString(m, vm.toString(uint256(arbChainId)), "{}");
+            string memory mocks = vm.serializeString(m, vm.toString(uint256(baseChainId)), "{}");
+            if (hasArb) mocks = vm.serializeString(m, vm.toString(uint256(arbChainId)), "{}");
             out = vm.serializeString(root, "mocks", mocks);
         }
         vm.writeJson(out, _deploymentsPath());
+    }
+
+    /// @dev config `token` copied into the deployments file: symbol, name (if present), decimals.
+    function _tokenJson() internal returns (string memory) {
+        string memory k = "token";
+        if (vm.keyExistsJson(cfg, ".token.name")) vm.serializeString(k, "name", vm.parseJsonString(cfg, ".token.name"));
+        vm.serializeString(k, "symbol", _tokenSymbol());
+        return vm.serializeUint(k, "decimals", _tokenDecimals());
     }
 
     function _writeHubSection(Addrs memory a, uint256 deployBlock, address usdc_) internal {
@@ -532,8 +588,9 @@ abstract contract XpoolBase is Script {
         console.log("DepositManager     ", a.depositManager);
         console.log("HubCore            ", a.hubCore);
         console.log("OpStackHubAdapter  ", a.opAdapter);
-        console.log("ArbitrumHubAdapter ", a.arbAdapter);
+        if (a.arbAdapter != address(0)) console.log("ArbitrumHubAdapter ", a.arbAdapter);
         console.log("Spoke (Base)       ", a.baseSpoke);
-        console.log("Spoke (Arbitrum)   ", a.arbSpoke);
+        if (a.arbSpoke != address(0)) console.log("Spoke (Arbitrum)   ", a.arbSpoke);
+        if (a.arbSpoke == address(0)) console.log("Arbitrum           disabled (no arbitrum spoke in config)");
     }
 }

@@ -15,8 +15,9 @@ import {MockUSDC} from "../src/mocks/MockUSDC.sol";
 ///   local:   keys from the Anvil mnemonic (operators 5-8, signers 9-12, LP 13); MockUSDC is minted.
 ///   testnet: SEED_OPERATOR_KEYS=0xk1,0xk2,..  SEED_SIGNERS=0xa1,0xa2,..  SEED_LP_KEY=0x..
 ///            (accounts must already hold Sepolia USDC and ETH)
-///   optional: SEED_BOND (per validator, default 10 * sMin), SEED_LP_AMOUNT (default 100k USDC local,
-///             100 USDC otherwise)
+///   optional: SEED_BOND (per validator, default 10 * sMin), SEED_LP_AMOUNT (default 100k tokens local,
+///             100 tokens otherwise; token units = config token.decimals, default 6)
+///   XPOOL_CONFIG=testnet-dai seeds the DAI pool (allocations go to Base only: no Arbitrum spoke).
 ///
 ///   XPOOL_ENV=testnet forge script script/Seed.s.sol --rpc-url $SEPOLIA_RPC --broadcast
 ///   XPOOL_ENV=testnet DEPLOYER_PRIVATE_KEY=0x.. forge script script/Seed.s.sol --sig "advance()" --rpc-url $SEPOLIA_RPC --broadcast
@@ -55,12 +56,16 @@ contract Seed is XpoolBase {
         require(opKeys.length == signers.length, "operator / signer count mismatch");
 
         uint256 bond = vm.envOr("SEED_BOND", 10 * sm.sMin());
-        uint64[] memory chains = new uint64[](2);
+        // allocate the bond evenly over the configured spokes (Base only when there is no Arbitrum spoke)
+        uint256 n = hasArb ? 2 : 1;
+        uint64[] memory chains = new uint64[](n);
+        uint256[] memory alloc = new uint256[](n);
         chains[0] = baseChainId;
-        chains[1] = arbChainId;
-        uint256[] memory alloc = new uint256[](2);
-        alloc[0] = bond / 2;
-        alloc[1] = bond / 2;
+        alloc[0] = bond / n;
+        if (hasArb) {
+            chains[1] = arbChainId;
+            alloc[1] = bond / n;
+        }
 
         for (uint256 i; i < opKeys.length; ++i) {
             address op = vm.addr(opKeys[i]);
@@ -75,7 +80,8 @@ contract Seed is XpoolBase {
             console.log("validator operator", op, "signer", signers[i]);
         }
 
-        uint256 lpAmount = vm.envOr("SEED_LP_AMOUNT", _isLocal() ? uint256(100_000e6) : uint256(100e6));
+        uint256 unit = 10 ** _tokenDecimals();
+        uint256 lpAmount = vm.envOr("SEED_LP_AMOUNT", (_isLocal() ? uint256(100_000) : uint256(100)) * unit);
         address lp = vm.addr(lpKey);
         vm.startBroadcast(lpKey);
         if (_isLocal()) MockUSDC(address(usdc)).mint(lp, lpAmount);

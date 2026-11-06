@@ -6,11 +6,13 @@ import {XpoolBase} from "./base/XpoolBase.s.sol";
 
 /// @notice PRD 14.5 step 2, on the hub chain (Sepolia for testnet). Deploys Create3Factory (if absent),
 ///         PoseidonT3/T4, Groth16Verifier, StakeManager, LiquidityManager, DepositManager, HubCore and both
-///         hub adapters at their predicted addresses, then writes deployments/<env>.json.
+///         hub adapters (the Arbitrum one only if the config has an Arbitrum spoke) at their predicted
+///         addresses, then writes deployments/<XPOOL_CONFIG>.json (XPOOL_CONFIG defaults to XPOOL_ENV).
 ///         Idempotent: contracts already at their predicted address are skipped.
 ///
 ///   XPOOL_ENV=testnet DEPLOYER_PRIVATE_KEY=0x... GUARDIAN=0xSafe \
 ///     forge script script/DeployHub.s.sol --rpc-url $SEPOLIA_RPC --broadcast --slow
+///   DAI pool: add XPOOL_CONFIG=testnet-dai
 contract DeployHub is XpoolBase {
     function run() external {
         _load();
