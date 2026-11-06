@@ -20,6 +20,15 @@ type Stage =
 
 export function Withdraw() {
   const [stage, setStage] = useState<Stage>({ kind: 'enter' });
+  // While a deposit is on its way, quietly re-check every 20 s so the page updates by itself.
+  useEffect(() => {
+    if (stage.kind !== 'ready' || stage.scanned.balance > 0n || stage.scanned.arrivingTotal === 0n) return;
+    const { code } = stage;
+    const t = setTimeout(() => {
+      scan(code.pool, code.keys).then((scanned) => setStage((s) => (s.kind === 'ready' && s.code === code ? { kind: 'ready', code, scanned } : s)), () => undefined);
+    }, 20_000);
+    return () => clearTimeout(t);
+  }, [stage]);
   const [codeText, setCodeText] = useState('');
   const [error, setError] = useState<string>();
 
@@ -218,7 +227,7 @@ function Ready({
         {scanned.arrivingTotal > 0n ? (
           <ul className="lead" style={{ paddingLeft: 20 }}>
             {scanned.arriving.map((d) => (
-              <li key={`${d.chainId}:${d.index}`}>{arrivingLine(pool, d, scanned.fastLane[d.chainId] ?? false)}</li>
+              <li key={`${d.chainId}:${d.index}`}>{arrivingLine(pool, d, scanned.fastLane[d.chainId] ?? false, scanned.fastLaneFrom[d.chainId])}</li>
             ))}
           </ul>
         ) : (
@@ -345,12 +354,18 @@ function Ready({
   );
 }
 
-function arrivingLine(pool: Pool, d: { chainId: number; amount: bigint; finalized: boolean }, fast: boolean): string {
+function arrivingLine(
+  pool: Pool,
+  d: { chainId: number; amount: bigint; finalized: boolean },
+  fast: boolean,
+  fastFrom?: number,
+): string {
   const c = chainOf(pool, d.chainId);
   const amt = `${fmtAmount(d.amount, pool.decimals)} ${pool.symbol} from ${c.label}`;
-  const wait = d.finalized ? '' : `${c.label} hasn't finalized that block yet (this can take a few hours on testnet). After that, `;
-  const lane = fast
-    ? 'validators add it to the pool within about 30 minutes.'
-    : `it reaches the pool through ${c.label}'s official bridge, which takes several days on testnet because no validator backs this pool on ${c.label} yet.`;
-  return `${amt}: seen on-chain. ${wait}${d.finalized ? lane.charAt(0).toUpperCase() + lane.slice(1) : lane}`;
+  if (fast) return `${amt}: seen on-chain. Validators add it to the pool within about a minute.`;
+  if (fastFrom) {
+    const at = new Date(fastFrom * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return `${amt}: seen on-chain. This pool's validator becomes active at ${at}; it adds the deposit to the pool within a minute after that. This page checks again on its own.`;
+  }
+  return `${amt}: seen on-chain. No validator backs this pool on ${c.label} yet, so it enters through ${c.label}'s own built-in bridge to Ethereum (the rollup's L1 messaging, not a third party), which takes several days on testnet.`;
 }

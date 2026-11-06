@@ -67,6 +67,8 @@ export interface ScanResult {
   arriving: Arriving[];
   /** Per L2 chain: does validator stake back the fast lane right now? Otherwise deposits wait for the bridge. */
   fastLane: Record<number, boolean>;
+  /** Per L2 chain: unix time validator stake already bonded for it becomes active (next epoch), if any. */
+  fastLaneFrom: Record<number, number>;
   balance: bigint;
   arrivingTotal: bigint;
 }
@@ -97,7 +99,7 @@ export async function scan(pool: Pool, keys: SpendingKeys, onProgress?: (fractio
     view,
     notes,
     arriving,
-    fastLane: await fastLaneByChain(pool),
+    ...(await fastLaneByChain(pool)),
     balance: notes.reduce((s, n) => s + n.amount, 0n),
     arrivingTotal: arriving.reduce((s, p) => s + p.amount, 0n),
   };
@@ -106,6 +108,10 @@ export async function scan(pool: Pool, keys: SpendingKeys, onProgress?: (fractio
 const stakeAbi = parseAbi([
   'function currentEpoch() view returns (uint64)',
   'function totalAllocation(uint64 chainId, uint64 epoch) view returns (uint256)',
+  'function epochStart(uint64 epoch) view returns (uint64)',
+  'function epochSeconds() view returns (uint64)',
+  'function activeValidators() view returns (uint32[])',
+  'function bondedOf(uint32 id) view returns (uint256)',
 ]);
 
 const depositEvent = abi.spokeAbi.find((x) => x.type === 'event' && x.name === 'Deposit')!;
@@ -143,20 +149,37 @@ async function unfinalizedDeposits(pool: Pool, keys: SpendingKeys, known: Arrivi
   return out;
 }
 
-async function fastLaneByChain(pool: Pool): Promise<Record<number, boolean>> {
-  const out: Record<number, boolean> = {};
+async function fastLaneByChain(pool: Pool): Promise<{ fastLane: Record<number, boolean>; fastLaneFrom: Record<number, number> }> {
+  const fastLane: Record<number, boolean> = {};
+  const fastLaneFrom: Record<number, number> = {};
   const hub = clientsOf(pool).hub;
   const sm = pool.env.hub.contracts.StakeManager;
+  const read = <T,>(functionName: string, args: unknown[] = []) =>
+    hub.run((x) => x.readContract({ address: sm, abi: stakeAbi, functionName, args } as never)) as Promise<T>;
   try {
-    const epoch = await hub.run((x) => x.readContract({ address: sm, abi: stakeAbi, functionName: 'currentEpoch' }));
+    const epoch = await read<bigint>('currentEpoch');
+    const [start, len] = await Promise.all([read<bigint>('epochStart', [epoch]), read<bigint>('epochSeconds')]);
     for (const s of pool.env.spokes) {
-      const total = await hub.run((x) =>
-        x.readContract({ address: sm, abi: stakeAbi, functionName: 'totalAllocation', args: [BigInt(s.chainId), epoch] }),
-      );
-      out[s.chainId] = total > 0n;
+      const [now, next] = await Promise.all([
+        read<bigint>('totalAllocation', [BigInt(s.chainId), epoch]),
+        // stake bonded during this epoch shows up in the next epoch's allocation only after advanceEpoch,
+        // so "pending" = the pool has any bonded validator while this chain has none active yet
+        read<bigint>('totalAllocation', [BigInt(s.chainId), epoch + 1n]).catch(() => 0n),
+      ]);
+      fastLane[s.chainId] = now > 0n;
+      if (now === 0n && (next > 0n || (await hasBondedValidator(read)))) fastLaneFrom[s.chainId] = Number(start + len);
     }
   } catch {
-    for (const s of pool.env.spokes) out[s.chainId] = false;
+    for (const s of pool.env.spokes) fastLane[s.chainId] = false;
   }
-  return out;
+  return { fastLane, fastLaneFrom };
+}
+
+async function hasBondedValidator(read: <T>(fn: string, args?: unknown[]) => Promise<T>): Promise<boolean> {
+  // validator ids start at 1; probe the first few registrations
+  for (let id = 1; id <= 3; id++) {
+    const b = await read<bigint>('bondedOf', [id]).catch(() => 0n);
+    if (b > 0n) return true;
+  }
+  return false;
 }
