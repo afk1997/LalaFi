@@ -8,7 +8,7 @@ import {
 } from 'viem';
 import { randomInt } from '../crypto/random.js';
 import type { FetchFn } from '../relayer/tor.js';
-import type { ResolvedEnv } from './config.js';
+import type { ResolvedEnv } from './resolve.js';
 
 export function chainDef(chainId: number, name: string, rpc: string[]): Chain {
   return defineChain({

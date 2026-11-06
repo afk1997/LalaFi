@@ -6,7 +6,7 @@
 import { getAbiItem, toBytes, type AbiEvent, type Address, type Log } from 'viem';
 import { depositManagerAbi, hubCoreAbi, spokeAbi } from '../abi/index.js';
 import type { EnvClients, RpcPool } from '../chains/clients.js';
-import type { ResolvedEnv } from '../chains/config.js';
+import type { ResolvedEnv } from '../chains/resolve.js';
 import type { SpendingKeys } from '../keys/derive.js';
 import { interpolateTime, pagedLogs, type Page } from './logs.js';
 import { SyncProcessor, type HubEvent, type NoteSink, type SpokeEvent, type SyncStats } from './processor.js';

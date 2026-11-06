@@ -1,7 +1,10 @@
 /**
  * CSPRNG only (PRD 5.10). Every random value in the SDK comes from here.
  */
-import { webcrypto } from 'node:crypto';
+// globalThis.crypto is the platform CSPRNG in Node >= 19 and every browser, so this module (and
+// everything built on it) runs unchanged in the web app.
+const webcrypto: typeof globalThis.crypto = globalThis.crypto;
+if (!webcrypto?.getRandomValues) throw new Error('no CSPRNG available (globalThis.crypto.getRandomValues)');
 
 const MAX_CHUNK = 65536; // getRandomValues limit per call
 

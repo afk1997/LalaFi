@@ -4,7 +4,8 @@
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { type Abi, type AbiItem, formatAbiItem } from 'viem/utils';
+import type { Abi, AbiItem } from 'viem';
+import { formatAbiItem } from 'viem/utils';
 import { describe, expect, it } from 'vitest';
 import * as abis from '../src/abis.js';
 
