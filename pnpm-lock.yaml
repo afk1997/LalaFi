@@ -36,6 +36,31 @@ importers:
         specifier: 0.0.281
         version: 0.0.281
 
+  packages/cli:
+    dependencies:
+      '@xpool/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+      commander:
+        specifier: ^15.0.0
+        version: 15.0.0
+      viem:
+        specifier: ^2.57.16
+        version: 2.57.16(typescript@5.9.3)
+    devDependencies:
+      '@types/node':
+        specifier: ^22.20.5
+        version: 22.20.5
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.9
+        version: 2.1.9(@types/node@22.20.5)
+
   packages/sdk:
     dependencies:
       '@noble/hashes':
@@ -775,6 +800,10 @@ packages:
 
   circomlibjs@0.1.7:
     resolution: {integrity: sha512-GRAUoAlKAsiiTa+PA725G9RmEmJJRc8tRFxw/zKktUxlQISGznT4hH4ESvW8FNTsrGg/nNd06sGP/Wlx0LUHVg==}
+
+  commander@15.0.0:
+    resolution: {integrity: sha512-z67u4ZhzCL/Tydu1lJARtEZYWbWaN7oYLHbsuzocr6y4N6WZAagG3RQ4FW61V1/0+jImpj293XfrcYnd1qxtPg==}
+    engines: {node: '>=22.12.0'}
 
   debug@4.4.3:
     resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
@@ -1847,6 +1876,8 @@ snapshots:
       - bufferutil
       - react-native-b4a
       - utf-8-validate
+
+  commander@15.0.0: {}
 
   debug@4.4.3:
     dependencies:
