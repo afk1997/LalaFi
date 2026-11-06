@@ -1,0 +1,33 @@
+{
+  "name": "@xpool/web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "artifacts": "node scripts/copy-artifacts.mjs",
+    "dev": "node scripts/copy-artifacts.mjs && vite",
+    "build": "node scripts/copy-artifacts.mjs && tsc -p tsconfig.json --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@fontsource-variable/schibsted-grotesk": "5.3.0",
+    "@fontsource/ibm-plex-mono": "5.3.0",
+    "@noble/hashes": "^2.4.0",
+    "@scure/base": "^1.2.6",
+    "@xpool/sdk": "workspace:*",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "snarkjs": "0.7.5",
+    "viem": "^2.57.16"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@vitejs/plugin-react": "^6.2.1",
+    "typescript": "^5.6.3",
+    "vite": "^8.3.6",
+    "vitest": "^2.1.4"
+  }
+}
