@@ -135,8 +135,9 @@
     "_note": "Test trusted setup (PSE ppot_0080_16 + team contribution + beacon). NOT FOR MAINNET."
   },
   "_notes": [
-    "Every external address MUST be confirmed by verify-deployment and against the official docs (PRD 14.6).",
-    "Base Sepolia L1 messenger/portal and CCTP V2 testnet addresses were filled from memory: VERIFY before deploying.",
+    "Base Sepolia L1CrossDomainMessenger/OptimismPortal checked against docs.base.org/specifications/reference/base-contracts (2026-11-07).",
+    "CCTP V2 testnet TokenMessengerV2/MessageTransmitterV2 checked against Circle's published testnet addresses (unified across chains).",
+    "VerifyDeployment still checks every external address on-chain before any funds go in (PRD 14.6).",
     "params.guardian must be set to the team Safe before deployment."
   ]
 }
