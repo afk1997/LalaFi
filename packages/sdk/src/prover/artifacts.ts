@@ -1,5 +1,5 @@
 /**
- * Circuit artifacts (docs/IMPLEMENTATION.md): circuits/build/{transaction.wasm, transaction_final.zkey,
+ * Circuit artifacts (docs/IMPLEMENTATION.md): circuits/artifacts/{transaction.wasm, transaction_final.zkey,
  * verification_key.json}; sha256 pins in config/<env>.json -> artifacts (or circuits/artifacts/hashes.json).
  * Artifacts are NEVER used unless their sha256 matches the pin.
  */
@@ -20,9 +20,9 @@ export class ArtifactError extends Error {
 
 export function defaultArtifactPaths(circuitsDir: string): ArtifactPaths {
   return {
-    wasm: join(circuitsDir, 'build', 'transaction.wasm'),
-    zkey: join(circuitsDir, 'build', 'transaction_final.zkey'),
-    vkey: join(circuitsDir, 'build', 'verification_key.json'),
+    wasm: join(circuitsDir, 'artifacts', 'transaction.wasm'),
+    zkey: join(circuitsDir, 'artifacts', 'transaction_final.zkey'),
+    vkey: join(circuitsDir, 'artifacts', 'verification_key.json'),
   };
 }
 

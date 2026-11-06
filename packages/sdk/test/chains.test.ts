@@ -35,7 +35,7 @@ describe('config loader', () => {
     expect(env.spokes[0]!.deployBlock).toBe(7n);
     expect(env.params.phiBps).toBe(10n);
     expect(env.params.relayerFeeBucket).toBe(10_000n);
-    expect(env.artifacts.wasm).toBeUndefined(); // "sha256:TBD"
+    expect(env.artifacts.wasm).toBe("341fb9b77d0746b7916e3a31e0e49b7eb81c3f66ba7d8e4be82294bb6b5d0628");
     expect(chainIdFor(env, 'eth')).toBe(31337);
     expect(chainIdFor(env, 'base')).toBe(31338);
     expect(chainIdFor(env, 'arb')).toBe(31339);
