@@ -51,7 +51,7 @@ forge script script/VerifyDeployment.s.sol:VerifyDeployment --rpc-url "$ARB_RPC"
 
 if [ "$SEED" = "1" ]; then
   forge script script/Seed.s.sol:Seed --rpc-url "$ETH_RPC" --broadcast --start-fresh
-  EPOCH_SECONDS="$(jq -r .params.epochSeconds ../config/local.json)"
+  EPOCH_SECONDS="$(grep -o '"epochSeconds": *[0-9]*' ../config/local.json | grep -o '[0-9]*$')"
   cast rpc --rpc-url "$ETH_RPC" evm_increaseTime "$EPOCH_SECONDS" >/dev/null
   cast rpc --rpc-url "$ETH_RPC" evm_mine >/dev/null
   forge script script/Seed.s.sol:Seed --sig "advance()" --rpc-url "$ETH_RPC" --broadcast --start-fresh
