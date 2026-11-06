@@ -25,7 +25,7 @@ logs:
 ps:
 	$(COMPOSE) ps
 
-## Full local scenario matrix (PRD 15.4). Placeholder: scripts/e2e.sh is filled in after merge.
+## Full local scenario matrix (PRD 15.4): real proofs, relayer, validators, mock bridges.
 e2e:
 	@if [ -x $(ROOT)/scripts/e2e.sh ]; then $(ROOT)/scripts/e2e.sh; \
 	else echo "scripts/e2e.sh not present yet (TODO(xpool): add after merge)"; exit 1; fi
