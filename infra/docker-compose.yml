@@ -1,0 +1,226 @@
+# xpool v1 — LOCAL 3-chain environment (PRD 14.1). See infra/README.md.
+#
+# All keys below are the PUBLIC Anvil default-mnemonic test keys
+# ("test test test test test test test test test test test junk"). Never reuse them anywhere else.
+#   0 deployer · 1 mock-bridge relayer + CCTP attester · 2 relayer · 3 finalizer · 4 keeper
+#   5–8 validator operators · 9–12 validator signers · 13+ users / LPs
+name: xpool-local
+
+x-anvil: &anvil
+  image: ghcr.io/foundry-rs/foundry:latest
+  entrypoint: ["anvil"]
+  # --slots-in-an-epoch 1 makes the `finalized` tag trail `latest` by 2 blocks (default: 64),
+  # so the validators' finalized-tag watcher works locally. --block-time keeps blocks coming.
+  healthcheck:
+    test: ["CMD", "cast", "block-number", "--rpc-url", "http://127.0.0.1:8545"]
+    interval: 2s
+    timeout: 3s
+    retries: 30
+  restart: unless-stopped
+
+x-service: &service
+  restart: unless-stopped
+  volumes:
+    - ../config:/app/config:ro
+    - ../deployments:/app/deployments:ro
+  depends_on: &service-deps
+    deployer:
+      condition: service_completed_successfully
+  healthcheck:
+    test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:9100/healthz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+    interval: 5s
+    timeout: 3s
+    retries: 20
+    start_period: 20s
+
+x-env: &env
+  XPOOL_ENV: local
+  XPOOL_ROOT: /app
+  XPOOL_RPC_31337: http://anvil-hub:8545
+  XPOOL_RPC_31338: http://anvil-base:8545
+  XPOOL_RPC_31339: http://anvil-arb:8545
+  STATE_DIR: /data
+  METRICS_PORT: "9100"
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+
+x-validator-env: &validator-env
+  VALIDATOR_PORT: "7000"
+  VALIDATOR_BOOTSTRAP_BOND: "1000000000"
+
+x-validator-build: &validator-build
+  context: ..
+  dockerfile: services/validator/Dockerfile
+
+services:
+  # ---------------------------------------------------------------- chains
+  anvil-hub:
+    <<: *anvil
+    command: ["--host", "0.0.0.0", "--port", "8545", "--chain-id", "31337", "--accounts", "20", "--block-time", "1", "--slots-in-an-epoch", "1"]
+    ports: ["8545:8545"]
+
+  anvil-base:
+    <<: *anvil
+    command: ["--host", "0.0.0.0", "--port", "8545", "--chain-id", "31338", "--accounts", "20", "--block-time", "1", "--slots-in-an-epoch", "1"]
+    ports: ["8546:8545"]
+
+  anvil-arb:
+    <<: *anvil
+    command: ["--host", "0.0.0.0", "--port", "8545", "--chain-id", "31339", "--accounts", "20", "--block-time", "1", "--slots-in-an-epoch", "1"]
+    ports: ["8547:8545"]
+
+  # ---------------------------------------------------------------- one-shot deployer
+  # Runs contracts/script/deploy-local.sh (contracts workstream), which deploys everything to the
+  # three chains and writes deployments/local.json. Requires `pnpm install` on the host first
+  # (Solidity deps resolve from node_modules via contracts/remappings.txt).
+  deployer:
+    image: ghcr.io/foundry-rs/foundry:latest
+    user: root
+    working_dir: /repo
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["sh contracts/script/deploy-local.sh"]
+    volumes:
+      - ..:/repo
+    environment:
+      XPOOL_ENV: local
+      HUB_RPC_URL: http://anvil-hub:8545
+      BASE_RPC_URL: http://anvil-base:8545
+      ARB_RPC_URL: http://anvil-arb:8545
+      DEPLOYER_PRIVATE_KEY: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+      MOCK_RELAYER_ADDRESS: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+      CCTP_ATTESTER_ADDRESS: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+      DEPLOYMENTS_OUT: /repo/deployments/local.json
+    depends_on:
+      anvil-hub: { condition: service_healthy }
+      anvil-base: { condition: service_healthy }
+      anvil-arb: { condition: service_healthy }
+    restart: "no"
+
+  # ---------------------------------------------------------------- mock bridge + mock CCTP (LOCAL ONLY)
+  mock-bridge:
+    <<: *service
+    build: { context: .., dockerfile: services/mock-bridge/Dockerfile }
+    image: xpool/mock-bridge:local
+    environment:
+      <<: *env
+      MOCK_BRIDGE_PRIVATE_KEY: "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
+      MOCK_BRIDGE_PORT: "8090"
+      # e.g. "op-l1-to-l2:1,arb-l1-to-l2:1" to make the next deliveries fail (low gas); also POST /admin/fail-next
+      MOCK_FAIL_NEXT: ${MOCK_FAIL_NEXT:-}
+    ports: ["8090:8090"]
+    volumes:
+      - ../config:/app/config:ro
+      - ../deployments:/app/deployments:ro
+      - mock-bridge-data:/data
+
+  # ---------------------------------------------------------------- validators (operators 5–8, signers 9–12)
+  validator-1:
+    <<: *service
+    build: *validator-build
+    image: xpool/validator:local
+    environment:
+      <<: [*env, *validator-env]
+      VALIDATOR_OPERATOR_KEY: "0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba"
+      VALIDATOR_SIGNER_KEY: "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6"
+      VALIDATOR_PEERS: http://validator-2:7000,http://validator-3:7000,http://validator-4:7000
+    volumes:
+      - ../config:/app/config:ro
+      - ../deployments:/app/deployments:ro
+      - validator-1-data:/data
+
+  validator-2:
+    <<: *service
+    build: *validator-build
+    image: xpool/validator:local
+    environment:
+      <<: [*env, *validator-env]
+      VALIDATOR_OPERATOR_KEY: "0x92db14e403b83dfe3df233f83dfa3a0d7096f21ca9b0d6d6b8d88b2b4ec1564e"
+      VALIDATOR_SIGNER_KEY: "0xf214f2b2cd398c806f84e317254e0f0b801d0643303237d97a22a48e01628897"
+      VALIDATOR_PEERS: http://validator-1:7000,http://validator-3:7000,http://validator-4:7000
+    volumes:
+      - ../config:/app/config:ro
+      - ../deployments:/app/deployments:ro
+      - validator-2-data:/data
+
+  validator-3:
+    <<: *service
+    build: *validator-build
+    image: xpool/validator:local
+    environment:
+      <<: [*env, *validator-env]
+      VALIDATOR_OPERATOR_KEY: "0x4bbbf85ce3377467afe5d46f804f221813b2bb87f24d81f60f1fcdbf7cbf4356"
+      VALIDATOR_SIGNER_KEY: "0x701b615bbdfb9de65240bc28bd21bbc0d996645a3dd57e7b12bc2bdf6f192c82"
+      VALIDATOR_PEERS: http://validator-1:7000,http://validator-2:7000,http://validator-4:7000
+    volumes:
+      - ../config:/app/config:ro
+      - ../deployments:/app/deployments:ro
+      - validator-3-data:/data
+
+  validator-4:
+    <<: *service
+    build: *validator-build
+    image: xpool/validator:local
+    environment:
+      <<: [*env, *validator-env]
+      VALIDATOR_OPERATOR_KEY: "0xdbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97"
+      VALIDATOR_SIGNER_KEY: "0xa267530f49f8280200edf313ee7af6b827f2a8bce2897751d06a843f644967b1"
+      VALIDATOR_PEERS: http://validator-1:7000,http://validator-2:7000,http://validator-3:7000
+    volumes:
+      - ../config:/app/config:ro
+      - ../deployments:/app/deployments:ro
+      - validator-4-data:/data
+
+  # ---------------------------------------------------------------- relayer (acct 2)
+  relayer:
+    <<: *service
+    build: { context: .., dockerfile: services/relayer/Dockerfile }
+    image: xpool/relayer:local
+    environment:
+      <<: *env
+      RELAYER_PRIVATE_KEY: "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a"
+      RELAYER_PORT: "8080"
+    ports: ["8080:8080"]
+    volumes:
+      - ../config:/app/config:ro
+      - ../deployments:/app/deployments:ro
+      - relayer-data:/data
+
+  # ---------------------------------------------------------------- finalizer (acct 3)
+  finalizer:
+    <<: *service
+    build: { context: .., dockerfile: services/finalizer/Dockerfile }
+    image: xpool/finalizer:local
+    environment:
+      <<: *env
+      FINALIZER_PRIVATE_KEY: "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6"
+    volumes:
+      - ../config:/app/config:ro
+      - ../deployments:/app/deployments:ro
+      - finalizer-data:/data
+
+  # ---------------------------------------------------------------- keeper (acct 4)
+  keeper:
+    <<: *service
+    build: { context: .., dockerfile: services/keeper/Dockerfile }
+    image: xpool/keeper:local
+    environment:
+      <<: *env
+      KEEPER_PRIVATE_KEY: "0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a"
+      KEEPER_IRIS_URL: http://mock-bridge:8090
+    depends_on:
+      <<: *service-deps
+      mock-bridge:
+        condition: service_healthy
+    volumes:
+      - ../config:/app/config:ro
+      - ../deployments:/app/deployments:ro
+      - keeper-data:/data
+
+volumes:
+  mock-bridge-data:
+  validator-1-data:
+  validator-2-data:
+  validator-3-data:
+  validator-4-data:
+  relayer-data:
+  finalizer-data:
+  keeper-data:
