@@ -8,6 +8,8 @@ export const ADDRESS_VERSION = 0x01;
 export const ADDRESS_PAYLOAD_LEN = 65;
 export const KNOWN_HRPS = ['xpool', 'txpool', 'lxpool'] as const;
 export type Hrp = (typeof KNOWN_HRPS)[number];
+/** HRP per environment (PRD 5.3). */
+export const HRP_BY_ENV = { mainnet: 'xpool', testnet: 'txpool', local: 'lxpool' } as const;
 
 export interface ShieldedAddress {
   hrp: string;

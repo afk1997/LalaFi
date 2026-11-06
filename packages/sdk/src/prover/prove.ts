@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { verifyArtifacts, type ArtifactPaths } from './artifacts.js';
+import { loadSnarkjs } from './snarkjs.js';
 import { publicSignals, type PublicInputs, type SnarkjsProof, type SolidityProof, type WitnessInput } from './types.js';
 import type { ArtifactPins } from '../chains/config.js';
 
@@ -68,7 +69,7 @@ function checkSignals(got: string[], pi: PublicInputs): void {
 const execFileP = promisify(execFile);
 
 async function proveRapidsnark(bin: string, input: WitnessInput, paths: ArtifactPaths): Promise<{ proof: SnarkjsProof; publicSignals: string[] }> {
-  const snarkjs = await import('snarkjs');
+  const snarkjs = await loadSnarkjs();
   const dir = mkdtempSync(join(tmpdir(), 'xpool-prove-'));
   try {
     const wtns = join(dir, 'witness.wtns');
@@ -89,14 +90,14 @@ async function proveRapidsnark(bin: string, input: WitnessInput, paths: Artifact
 /** Verify artifacts against pins, prove, check public signals, optionally self-verify. */
 export async function prove(input: WitnessInput, expected: PublicInputs, opts: ProveOptions): Promise<ProveResult> {
   await verifyArtifacts(opts.paths, opts.pins);
-  const snarkjs = await import('snarkjs');
+  const snarkjs = await loadSnarkjs();
   const out = opts.rapidsnark
     ? await proveRapidsnark(opts.rapidsnark, input, opts.paths)
     : await snarkjs.groth16.fullProve(input as unknown as Record<string, unknown>, opts.paths.wasm, opts.paths.zkey);
   checkSignals(out.publicSignals, expected);
   if (opts.selfVerify !== false) {
     const vkey = JSON.parse(readFileSync(opts.paths.vkey, 'utf8')) as unknown;
-    const ok = await snarkjs.groth16.verify(vkey, out.publicSignals, out.proof as Parameters<typeof snarkjs.groth16.verify>[2]);
+    const ok = await snarkjs.groth16.verify(vkey, out.publicSignals, out.proof);
     if (!ok) throw new ProverError('generated proof does not verify');
   }
   return { proof: toSolidityProof(out.proof), raw: out.proof, publicSignals: out.publicSignals };

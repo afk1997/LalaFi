@@ -7,6 +7,7 @@ import {
   toSolidityProof, BN254_Q, ProverError, verifyArtifacts, ArtifactError, sha256File, readHashesFile,
   defaultArtifactPaths, artifactsPresent, prove, terminateProver, publicSignals,
 } from '../src/prover/index.js';
+import { loadSnarkjs } from '../src/prover/snarkjs.js';
 import { MerkleTree } from '../src/tree/merkle.js';
 import { buildFeeOnly } from '../src/tx/builder.js';
 import { TEST_KEYS, ownedNoteInTree } from './helpers.js';
@@ -26,6 +27,11 @@ describe('Solidity proof conversion', () => {
     expect(() => toSolidityProof({ pi_a: ['x', '2'], pi_b: [['3', '4'], ['5', '6']], pi_c: ['7', '8'] })).toThrow(ProverError);
     expect(() => toSolidityProof({ pi_a: [BN254_Q.toString(), '2'], pi_b: [['3', '4'], ['5', '6']], pi_c: ['7', '8'] })).toThrow(/base field/);
     expect(() => toSolidityProof({ pi_a: ['1', '2'], pi_b: [['3', '4']], pi_c: ['7', '8'] })).toThrow(ProverError);
+  });
+  it('loads snarkjs lazily', async () => {
+    const s = await loadSnarkjs();
+    expect(typeof s.groth16.fullProve).toBe('function');
+    expect(typeof s.wtns.calculate).toBe('function');
   });
   it('public signals are in snarkjs order', () => {
     expect(publicSignals({ root: 1n, publicAmount: 2n, extDataHash: 3n, inputNullifiers: [4n, 5n], outputCommitments: [6n, 7n] })).toEqual([1n, 2n, 3n, 4n, 5n, 6n, 7n]);
