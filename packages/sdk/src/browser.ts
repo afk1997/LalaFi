@@ -12,6 +12,7 @@ export type { OwnedNote, PendingDeposit, NoteSource } from './notes/store.js';
 export * from './tree/index.js';
 export * from './sync/index.js';
 export * from './prover/types.js';
+export * from './prover/convert.js';
 export * from './tx/index.js';
 export * from './relayer/client.js';
 export * from './privacy/index.js';
