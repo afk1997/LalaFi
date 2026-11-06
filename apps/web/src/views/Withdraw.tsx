@@ -3,7 +3,7 @@ import { getAddress, isAddress, type Address, type Hash } from 'viem';
 import { AmountPill, CHAIN_MARK, FieldPill, Mark, SelectPill, TOKEN_MARK } from '../components/pills';
 import { available } from '../lib/chain';
 import { parseCode, type DepositCode } from '../lib/code';
-import { chainOf, pools } from '../lib/env';
+import { chainOf, pools, type Pool } from '../lib/env';
 import { fmtAmount, parseAmount, plainAmount } from '../lib/format';
 import { withdrawalHints } from '../lib/privacy';
 import { warmProver } from '../lib/prover';
@@ -215,11 +215,17 @@ function Ready({
       <section>
         {holds}
         <h1 className="sentence swap">{scanned.arrivingTotal > 0n ? 'Your deposit is on its way.' : 'Nothing to withdraw yet.'}</h1>
-        <p className="lead">
-          {scanned.arrivingTotal > 0n
-            ? 'Deposits made on an L2 take about 30 minutes to land in the pool. Check again shortly.'
-            : 'If you deposited in the last few minutes, it may not be in the pool yet. Otherwise this code has already been withdrawn.'}
-        </p>
+        {scanned.arrivingTotal > 0n ? (
+          <ul className="lead" style={{ paddingLeft: 20 }}>
+            {scanned.arriving.map((d) => (
+              <li key={`${d.chainId}:${d.index}`}>{arrivingLine(pool, d, scanned.fastLane[d.chainId] ?? false)}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="lead">
+            If you deposited in the last few minutes, it may not be readable yet. Otherwise this code has already been withdrawn.
+          </p>
+        )}
       </section>
     );
   }
@@ -337,4 +343,14 @@ function Ready({
       </div>
     </section>
   );
+}
+
+function arrivingLine(pool: Pool, d: { chainId: number; amount: bigint; finalized: boolean }, fast: boolean): string {
+  const c = chainOf(pool, d.chainId);
+  const amt = `${fmtAmount(d.amount, pool.decimals)} ${pool.symbol} from ${c.label}`;
+  const wait = d.finalized ? '' : `${c.label} hasn't finalized that block yet (this can take a few hours on testnet). After that, `;
+  const lane = fast
+    ? 'validators add it to the pool within about 30 minutes.'
+    : `it reaches the pool through ${c.label}'s official bridge, which takes several days on testnet because no validator backs this pool on ${c.label} yet.`;
+  return `${amt}: seen on-chain. ${wait}${d.finalized ? lane.charAt(0).toUpperCase() + lane.slice(1) : lane}`;
 }
