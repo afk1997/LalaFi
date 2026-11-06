@@ -20,11 +20,16 @@ SIGS=(0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6 0xf214f
 export XPOOL_ENV=local XPOOL_ROOT="$ROOT" LOG_LEVEL="${LOG_LEVEL:-info}"
 export XPOOL_RPC_31337=http://127.0.0.1:8545 XPOOL_RPC_31338=http://127.0.0.1:8546 XPOOL_RPC_31339=http://127.0.0.1:8547
 
+ONLY="${2:-}"  # optional: `start validator` starts only services whose name starts with "validator"
 launch() { # name dir metricsPort VAR=VAL...
   local name=$1 dir=$2 mport=$3; shift 3
+  case "$name" in "$ONLY"*) ;; *) return 0 ;; esac
   mkdir -p "$RUN/state/$name"
-  ( cd "$ROOT/services/$dir" && env STATE_DIR="$RUN/state/$name" METRICS_PORT="$mport" "$@" \
-      nohup node --import tsx src/index.ts >"$RUN/logs/$name.log" 2>&1 & echo $! >"$RUN/$name.pid" )
+  # `&` must apply to the node command alone so $! is node's pid (stop signals it directly).
+  ( cd "$ROOT/services/$dir" || exit 1
+    env STATE_DIR="$RUN/state/$name" METRICS_PORT="$mport" "$@" \
+      nohup node --import tsx src/index.ts >"$RUN/logs/$name.log" 2>&1 &
+    echo $! >"$RUN/$name.pid" )
   echo "started $name (log: $RUN/logs/$name.log)"
 }
 
