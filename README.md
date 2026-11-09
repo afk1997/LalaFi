@@ -1,4 +1,4 @@
-# xpool v1 — cross-chain privacy pool (RagaSwap)
+# Lalafi v1 — cross-chain privacy pool 
 
 One shielded USDC pool shared by Ethereum, Base and Arbitrum. Deposit on any of the three, spend from
 one global anonymity set, withdraw to any of the three. Spec: [`2026-11-06-xpool-v1-prd.md`](2026-11-06-xpool-v1-prd.md).
